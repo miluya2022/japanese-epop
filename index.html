@@ -114,9 +114,42 @@ var Learning = (function () {
       mode: mode, answer: match ? match[1] : word.word, reading: match ? match[2] : word.kana,
       aliases: word.aliases || [], round: 0, wasNew: !p.seen, hints: 0, revealed: false, assistedAudio: false, answered: false};
   }
+  // Categories can be supplied by the vocabulary; older rows use conservative text rules.
+  function category(w) {
+    if (w.category) return w.category;
+    var t = (w.meaning || '') + ' ' + (w.explanation || '');
+    if (/量詞|助數詞|助数詞|數字|數量|星期|月份|幾[個本張歲人點]|\d/.test(t) || /^[一二三四五六七八九十百千萬万億兆]+$/.test(w.word)) return 'number-counter';
+    if (w.type === 'usage') return 'grammar';
+    if (/[るうくぐすつぬぶむ]$/.test(w.kana || '')) return 'verb';
+    if (/い$/.test(w.kana || '')) return 'adjective';
+    return w.topic || 'other';
+  }
+  function diverse(pool, count) {
+    var remaining = pool.slice(), picked = [], counts = {};
+    // Fisher–Yates: new batches do not follow the import ID order.
+    for (var i = remaining.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1)), tmp = remaining[i]; remaining[i] = remaining[j]; remaining[j] = tmp;
+    }
+    while (remaining.length && picked.length < count) {
+      var best = 0;
+      for (var k = 1; k < remaining.length; k++) if ((counts[category(remaining[k])] || 0) < (counts[category(remaining[best])] || 0)) best = k;
+      var w = remaining.splice(best, 1)[0], key = category(w);
+      counts[key] = (counts[key] || 0) + 1; picked.push(w);
+    }
+    return picked;
+  }
   function start(words, records, profile, kind, now, id) {
     var s = settings(profile.settings), available = candidates(words, records, s, kind, now);
-    var picked = available.slice(0, kind === 'review' ? 5 : s.goal);
+    var limit = kind === 'review' ? 5 : s.goal, picked = [];
+    if (kind === 'daily' || kind === 'review') {
+      var due = available.filter(function(w) {return (records[w.id] || {}).seen;});
+      var fresh = diverse(candidates(words, records, s, 'daily', now).filter(function(w) {return !(records[w.id] || {}).seen;}), limit);
+      // Start with fresh material, then alternate with due words whenever both exist.
+      while (picked.length < limit && (fresh.length || due.length)) {
+        if (fresh.length) picked.push(fresh.shift());
+        if (picked.length < limit && due.length) picked.push(due.shift());
+      }
+    } else picked = available.slice(0, limit);
     return {id: id, kind: kind, startedAt: now, completedAt: 0, index: 0,
       total: picked.length, available: available.length, fresh: picked.filter(function(w) {return !(records[w.id] || {}).seen;}).length,
       queue: picked.map(function(w, i) {return question(w, records[w.id] || progress(), s.mode, i);}),
@@ -172,7 +205,7 @@ var Learning = (function () {
     // A repeat confirms practice, but cannot overwrite the first recall result or award XP twice.
     if ((!correct || helped) && q.round < 2) {
       var retry = Object.assign({}, q, {round: q.round + 1, id: q.wordId + ':' + session.index + ':' + (q.round + 1), answered: false, hints: 0, revealed: false, assistedAudio: false});
-      session.queue.splice(Math.min(session.index + 3, session.queue.length), 0, retry);
+      session.queue.splice(Math.min(session.index + 6, session.queue.length), 0, retry);
     }
     records[q.wordId] = p;
     q.answered = true;
