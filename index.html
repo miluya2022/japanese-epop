@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="apple-touch-icon" href="./icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#101510">
+  <title>日文 e pop｜每天一點，真的記住</title>
+  <style>
+:root{color-scheme:dark;--bg:#101510;--panel:#192119;--panel2:#202b21;--line:#344034;--ink:#f1f5eb;--muted:#b4bfad;--green:#c7eb93;--green-dark:#263719;--amber:#f2cf87;--error:#ffb3a9;--radius:22px;font-family:Inter,"Noto Sans JP","PingFang TC","Microsoft JhengHei",system-ui,sans-serif}*{box-sizing:border-box}body{margin:0;background:#0b0f0c;color:var(--ink);font-size:15px;line-height:1.6}button,input,select{font:inherit}button,a,input,select{-webkit-tap-highlight-color:transparent}button{cursor:pointer}button:disabled{opacity:.5;cursor:wait}button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--amber);outline-offset:4px}button{color:inherit}a{color:var(--green)}[hidden]{display:none!important}.app-shell{max-width:900px;min-height:100dvh;margin:auto;background:var(--bg);padding-bottom:106px}.app-header{padding:25px 34px;display:flex;align-items:center;justify-content:space-between;gap:18px;border-bottom:1px solid var(--line)}.brand{display:flex;align-items:center;gap:12px;color:var(--ink);text-decoration:none;font-size:19px;letter-spacing:.03em}.brand b{font-weight:750}.brand small{display:block;font-size:11px;color:var(--muted);letter-spacing:.12em}.brand-icon{width:46px;height:46px;border-radius:15px;background:var(--green);color:#24321a;display:grid;place-items:center;font-size:29px;font-weight:800}.header-progress{width:155px;display:flex;flex-wrap:wrap;justify-content:space-between;gap:5px;font-size:12px}.header-progress small{color:var(--muted);margin-left:auto}.xp-track{height:5px;width:100%;background:var(--line);border-radius:8px;overflow:hidden}.xp-track i{display:block;height:100%;background:var(--green);transition:width .3s}main{padding:32px 34px}.eyebrow{color:var(--green);font-size:11px;letter-spacing:.14em;font-weight:700;text-transform:uppercase}.title-row{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:22px}h1{font-size:30px;line-height:1.3;margin:7px 0 12px;font-weight:750;letter-spacing:-.03em}h2{font-size:20px;margin:0 0 12px}h3{font-size:16px;margin:0 0 9px}p{margin:0 0 13px}.muted,small{color:var(--muted)}.hero{padding:28px;background:linear-gradient(120deg,#2a3924,#1b281d);border:1px solid #4a5a3d;border-radius:var(--radius);position:relative;margin-bottom:20px}.hero h2{font-size:26px;max-width:75%}.hero-mark{position:absolute;right:25px;top:22px;font-size:56px;color:#bedda3;opacity:.8}.hero .muted{max-width:80%}.button{border:1px solid transparent;border-radius:12px;padding:12px 20px;background:var(--green);color:#243119;font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:46px}.button.secondary{background:var(--panel2);border-color:var(--line);color:var(--ink)}.button.ghost{background:transparent;color:var(--muted);border-color:var(--line)}.button.small{padding:7px 12px;min-height:38px;font-size:13px}.button.full{width:100%}.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px;margin:18px 0}.grid.two{grid-template-columns:repeat(2,minmax(0,1fr))}.tile,.panel{border:1px solid var(--line);border-radius:var(--radius);padding:20px;background:var(--panel)}.tile strong{display:block;font-size:28px;font-weight:700;line-height:1.4;margin:5px 0}.tile small{font-size:12px}.tile .number-green{color:var(--green)}.section-label{display:flex;justify-content:space-between;align-items:center;margin:27px 0 12px}.section-label h2{margin:0;font-size:17px}.tag{display:inline-block;font-size:11px;padding:3px 9px;border-radius:20px;background:var(--panel2);color:var(--muted);border:1px solid var(--line)}.tag.green{color:var(--green);background:var(--green-dark)}.tag.amber{color:var(--amber)}.progress-track{height:8px;background:#111a12;border-radius:10px;overflow:hidden;margin:16px 0 9px}.progress-track span{height:100%;background:var(--green);display:block;transition:width .25s}.between{display:flex;justify-content:space-between;align-items:center;gap:12px}.text-link{border:0;background:none;padding:0;color:var(--green);font-weight:600}.bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:min(900px,100%);background:rgba(16,21,16,.97);backdrop-filter:blur(18px);border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(4,1fr);padding:10px 14px max(10px,env(safe-area-inset-bottom));z-index:10}.bottom-nav button{border:0;background:none;color:var(--muted);font-size:11px;display:flex;align-items:center;flex-direction:column;gap:1px;padding:6px}.bottom-nav button span{font-size:22px;line-height:1.25}.bottom-nav button.active{color:var(--green)}.quiz-card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:30px;margin:18px 0}.quiz-prompt{font-size:21px;margin:20px 0 16px;line-height:1.7}.sentence{font-size:27px;line-height:2.5;overflow-wrap:anywhere;margin:12px 0 22px}.sentence ruby{ruby-align:center}.sentence rt{font-size:11px;color:var(--muted)}.blank{display:inline-block;border-bottom:2px solid var(--green);color:var(--green);min-width:85px;text-align:center;padding:0 8px;line-height:1.5}.answer-label{font-size:12px;color:var(--muted);display:block;margin:12px 0 6px}.answer-input,input[type=search],select,input[type=time],input[type=text]{width:100%;background:#111812;color:var(--ink);border:1px solid #58684c;border-radius:11px;padding:13px 14px;min-height:48px}.answer-input{font-size:23px!important;letter-spacing:.05em}.answer-input.correct{border-color:var(--green)}.answer-input.incorrect{border-color:var(--error)}.hint{padding:10px 14px;background:#302b1d;border-radius:10px;color:var(--amber);margin-top:12px;font-size:14px}.feedback{border:1px solid #5b7444;background:#202e1b;padding:20px;border-radius:16px;margin-top:18px}.feedback.wrong{background:#302521;border-color:#815b4e}.feedback h3{color:var(--green)}.feedback.wrong h3{color:var(--amber)}.feedback p{margin-bottom:9px}.feedback .answer{font-size:22px}.quiz-meta{display:flex;justify-content:space-between;gap:12px;font-size:12px;color:var(--muted)}.audio-stage{padding:24px;text-align:center;background:#131d16;border-radius:15px;margin:18px 0}.audio-stage .button{margin-bottom:10px}.summary-icon{font-size:44px;margin-bottom:10px}.summary{text-align:center}.summary .hero h2,.summary .hero .muted{max-width:100%}.word-row{display:flex;justify-content:space-between;gap:15px;border-bottom:1px solid var(--line);padding:17px 0}.word-row:last-child{border:0}.word-row h3{font-size:20px;margin:0}.word-row .kana{color:var(--green);font-size:12px}.word-row p{margin:4px 0;font-size:13px}.word-actions{display:flex;align-items:center;gap:7px}.icon-button{border:1px solid var(--line);border-radius:10px;background:var(--panel2);min-width:42px;min-height:42px;color:var(--muted)}.icon-button.selected{color:var(--amber);border-color:#807047}.filter-row{display:flex;gap:8px;flex-wrap:wrap;margin:13px 0}.filter-row button{font-size:12px;border-radius:20px;border:1px solid var(--line);padding:7px 13px;background:none;color:var(--muted)}.filter-row button.active{color:var(--green);border-color:var(--green);background:var(--green-dark)}.field{margin-bottom:20px}.field label{display:block;font-size:14px;margin-bottom:6px}.field small{display:block;margin-top:6px;font-size:12px}.badge-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.badge{padding:15px 10px;text-align:center;border:1px solid var(--line);border-radius:15px;background:var(--panel)}.badge .badge-icon{font-size:29px}.badge.locked{opacity:.5;filter:grayscale(1)}.badge strong{display:block;font-size:13px}.badge small{display:block;font-size:11px}.history-row{display:flex;justify-content:space-between;padding:12px 0;gap:12px;border-bottom:1px solid var(--line);font-size:13px}.history-row:last-child{border:0}.week{display:grid;grid-template-columns:repeat(7,1fr);gap:7px;margin-top:18px}.day{text-align:center;font-size:11px;color:var(--muted)}.day span{display:grid;place-items:center;background:#131b14;border:1px solid var(--line);border-radius:12px;height:36px;margin-top:6px}.day.done span{background:var(--green-dark);color:var(--green);border-color:#658248}.empty{text-align:center;padding:35px 15px;color:var(--muted)}.loading-state{text-align:center;padding:70px 20px;color:var(--muted)}#message{margin:15px 34px 0;border:1px solid #647d45;padding:10px 15px;border-radius:10px;color:var(--green);font-size:13px}.error-panel{margin:15px 34px 0;border:1px solid #91665b;padding:12px 15px;background:#332522;border-radius:12px;display:flex;gap:12px;align-items:center;justify-content:space-between;font-size:13px}.preview-banner{text-align:center;font-size:11px;color:var(--amber);background:#28261d;padding:5px 10px}.note{font-size:12px;color:var(--muted);margin:14px 0}.mini-list{padding-left:20px;font-size:14px}.mini-list li{margin-bottom:7px}.celebrate{animation:arrive .4s ease-out}@keyframes arrive{from{opacity:.3;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}@media(max-width:600px){.app-header{padding:18px 19px}.brand{font-size:16px;gap:9px}.brand-icon{width:39px;height:39px}.brand small{font-size:9px}.header-progress{width:125px;font-size:11px}main{padding:25px 19px}h1{font-size:26px}.hero{padding:22px}.hero h2{font-size:23px}.hero-mark{font-size:45px;right:18px}.tile,.panel{padding:16px}.tile strong{font-size:25px}.grid{gap:8px}.tile small{font-size:10px}.quiz-card{padding:22px 18px}.sentence{font-size:24px}.quiz-prompt{font-size:19px}.badge-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.grid.two{grid-template-columns:1fr}.actions .button{flex:1}.word-actions{gap:5px}.icon-button{min-width:38px}.error-panel,#message{margin-left:19px;margin-right:19px}.error-panel{align-items:flex-start}.hero .muted{font-size:13px}}@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important}}
+.answer-status{min-height:28px;margin-top:10px;color:var(--muted);font-size:14px}.answer-status.near{color:var(--amber)}.answer-status.correct{color:var(--green)}
+
+.device-bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;padding:8px 24px;color:var(--muted);font-size:11px;border-bottom:1px solid var(--line)}
+.next-input{font-size:16px!important;min-height:44px}
+@media(max-width:600px){
+  .app-header{padding:12px 16px}.quiz-card{padding:18px 16px}.sentence{font-size:clamp(21px,5vw,26px)}
+  .quiz-card .actions{position:sticky;bottom:0;background:var(--panel);padding:10px 0;z-index:2}
+  .keyboard-open .bottom-nav{display:none}.keyboard-open .app-shell{padding-bottom:12px}
+  .keyboard-open .app-header{position:static}.keyboard-open main{padding-top:12px}
+  input,select{font-size:16px}.icon-button{min-width:44px;min-height:44px}
+  .word-row>div:first-child{min-width:0}.word-row h3{overflow-wrap:anywhere}
+  .answer-input{scroll-margin-top:24px;scroll-margin-bottom:100px}
+}
+@media(max-width:380px){.brand small{display:none}.grid{grid-template-columns:1fr}.header-progress{width:110px}.actions{gap:6px}.button{padding:10px 12px}}
+.question-illustration{margin:18px 0}.question-illustration img{display:block;width:100%;max-height:280px;object-fit:contain;border-radius:12px}.question-illustration figcaption{font-size:12px;color:var(--muted);margin-top:6px}
+</style>
+
+</head>
+<body>
+  <div class="app-shell">
+    <header class="app-header">
+      <a class="brand" href="#home" aria-label="回到今日首頁"><span class="brand-icon">あ</span><span>日文 <b>e pop</b><small>每天一點，真的記住。</small></span></a>
+      <div class="header-progress"><span id="header-streak">🔥 0 天</span><span id="header-level">Lv. 1</span><div class="xp-track"><i id="xp-fill"></i></div><small id="xp-text">0 / 100 XP</small></div>
+    </header>
+    <div id="preview-banner" class="preview-banner" hidden>本地預覽 · 進度儲存在此瀏覽器，可離線試用</div>
+    <div class="device-bar"><span id="sync-status" role="status">正在載入進度…</span><span id="offline-ready"></span><button id="install-app" class="text-link" hidden>安裝到主畫面</button><button id="update-app" class="text-link" hidden>有新版本，立即更新</button></div>
+    <input id="backup-file" type="file" accept="application/json,.json" hidden>
+    <div id="message" role="status" aria-live="polite" hidden></div>
+    <div id="error-panel" class="error-panel" role="alert" hidden><span id="error-text"></span><button id="retry-button" class="button small">重試</button></div>
+    <main id="main" tabindex="-1"><div class="loading-state">正在準備你的學習內容…</div></main>
+    <nav class="bottom-nav" aria-label="主要導覽">
+      <button data-page="home" class="active"><span>⌂</span>今日學習</button>
+      <button data-page="words"><span>▤</span>我的單字</button>
+      <button data-page="stats"><span>◴</span>成長紀錄</button>
+      <button data-page="settings"><span>⚙</span>學習設定</button>
+    </nav>
+  </div>
+  <script>window.EPOP_PWA=true;</script><script>
+/** Pure learning rules, also used by the local preview and tests. */
+var Learning = (function () {
+  function normalize(value) {
+    return String(value || '').normalize('NFKC').replace(/[\u30a1-\u30f6]/g, function (c) {
+      return String.fromCharCode(c.charCodeAt(0) - 0x60);
+    }).replace(/[\s\u3000]/g, '').toLowerCase();
+  }
+  function day(time) { return new Date(time + 8 * 3600000).toISOString().slice(0, 10); }
+  function defaults() { return {goal: 10, level: 'N5', topic: 'all', mode: 'recall', reminder: '20:00', onboarding: false}; }
+  function settings(input) {
+    var s = Object.assign(defaults(), input || {});
+    if ([5, 10, 15, 20].indexOf(Number(s.goal)) < 0) s.goal = 10;
+    s.goal = Number(s.goal);
+    if (['N5', 'N4', 'N3', 'all'].indexOf(s.level) < 0) s.level = 'N5';
+    if (['all', 'daily', 'travel', 'food', 'grammar'].indexOf(s.topic) < 0) s.topic = 'all';
+    if (['recall', 'reading', 'listening', 'usage', 'mixed'].indexOf(s.mode) < 0) s.mode = 'recall';
+    if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(s.reminder)) s.reminder = '20:00';
+    return s;
+  }
+  function progress() { return {seen: 0, correct: 0, rep: 0, due: 0, interval: 0, lastDay: '', lastSuccessDay: '', lastFailed: false, favorite: false, modes: {}}; }
+  function status(p) { return !p || !p.seen ? 'new' : p.rep >= 5 && !p.lastFailed ? 'mastered' : p.lastFailed ? 'weak' : 'learning'; }
+  function candidates(words, records, s, kind, now) {
+    return words.filter(function (w) {
+      var p = records[w.id];
+      // Due reviews remain available regardless of a newly selected level/topic.
+      if (kind === 'review') return p && p.seen && p.due <= now;
+      if (kind === 'weak') return p && p.lastFailed;
+      if (kind === 'favorites') return p && p.favorite;
+      if (p && p.seen && p.due <= now) return true;
+      return (!p || !p.seen) && (s.level === 'all' || w.level === s.level) &&
+        (s.topic === 'all' || w.topic === s.topic) && (s.mode !== 'usage' || w.type === 'usage');
+    }).sort(function (a, b) {
+      var pa = records[a.id] || progress(), pb = records[b.id] || progress();
+      var da = pa.seen && pa.due <= now, db = pb.seen && pb.due <= now;
+      if (da !== db) return da ? -1 : 1;
+      if (da && pa.due !== pb.due) return pa.due - pb.due;
+      if (kind === 'favorites' || kind === 'weak') {
+        var age = (pa.lastPracticedAt || 0) - (pb.lastPracticedAt || 0);
+        if (age) return age;
+      }
+      if (pa.favorite !== pb.favorite) return pa.favorite ? -1 : 1;
+      if (a.type !== b.type) return a.type === 'word' ? -1 : 1;
+      return a.id.localeCompare(b.id);
+    });
+  }
+  function question(word, p, selectedMode, index) {
+    var mode = word.type === 'usage' ? 'usage' : selectedMode;
+    if (mode === 'mixed') {
+      // Practice the least successful observed skill; unseen skills rotate.
+      var modes = ['recall', 'reading', 'listening'];
+      mode = modes.slice().sort(function (a, b) {
+        var ma = p.modes[a] || {seen: 0, correct: 0}, mb = p.modes[b] || {seen: 0, correct: 0};
+        return (ma.seen ? ma.correct / ma.seen : -1) - (mb.seen ? mb.correct / mb.seen : -1) || modes.indexOf(a) - modes.indexOf(b);
+      })[0];
+    }
+    if (mode === 'usage') mode = word.type === 'usage' ? 'usage' : 'recall';
+    var alternatives = [word.sentence_jp].concat(word.variants || []);
+    var sentence = alternatives[p.seen % alternatives.length];
+    var match = sentence.match(/\{([^|}]+)\|([^}]+)\}/);
+    return {id: word.id + ':' + index + ':0', wordId: word.id, word: word.word, kana: word.kana,
+      image_url: word.image_url || '', image_alt: word.image_alt || '',
+      meaning: word.meaning, sentence: sentence, translation: p.seen % alternatives.length ? (word.variant_zh || word.sentence_zh) : word.sentence_zh,
+      explanation: word.explanation || ('這個句子使用「' + word.word + '」，意思是「' + word.meaning + '」。'),
+      mode: mode, answer: match ? match[1] : word.word, reading: match ? match[2] : word.kana,
+      aliases: word.aliases || [], round: 0, wasNew: !p.seen, hints: 0, revealed: false, assistedAudio: false, answered: false};
+  }
+  function start(words, records, profile, kind, now, id) {
+    var s = settings(profile.settings), available = candidates(words, records, s, kind, now);
+    var picked = available.slice(0, kind === 'review' ? 5 : s.goal);
+    return {id: id, kind: kind, startedAt: now, completedAt: 0, index: 0,
+      total: picked.length, available: available.length, fresh: picked.filter(function(w) {return !(records[w.id] || {}).seen;}).length,
+      queue: picked.map(function(w, i) {return question(w, records[w.id] || progress(), s.mode, i);}),
+      firstCorrect: 0, assisted: 0, mistakes: 0, reviewTotal: 0, reviewCorrect: 0, xp: 0, events: {}, results: {}};
+  }
+  function answer(session, records, profile, input, now) {
+    if (session.events[input.eventId]) return session.events[input.eventId];
+    var q = session.queue[session.index];
+    if (!q || q.id !== input.questionId || q.answered || session.completedAt) throw new Error('題目已更新，請重新載入繼續學習。');
+    var user = normalize(input.answer), answers = q.mode === 'reading' ? [q.reading].concat(q.aliases.filter(function(a) {return /^[\u3040-\u30ff]+$/.test(a);})) : [q.answer, q.reading].concat(q.aliases);
+    var abandoned = Number(input.hints) >= 3;
+    var correct = !abandoned && answers.some(function(a) {return normalize(a) === user;});
+    if (!correct && !abandoned) throw new Error('答案尚未正確，可以繼續修改；第三次提示才會放棄作答。');
+    var helped = !!input.hints || abandoned || !!input.assistedAudio || !!q.assistedAudio;
+    var p = Object.assign(progress(), records[q.wordId] || {});
+    p.modes = Object.assign({}, p.modes);
+    var xp = 0, first = q.round === 0;
+    if (first) {
+      var eligible = !p.seen || (p.due <= now && p.lastSuccessDay !== day(now));
+      if (p.seen && p.lastDay && p.lastDay !== day(now)) {
+        session.reviewTotal = (session.reviewTotal || 0) + 1;
+        if (correct && !helped) session.reviewCorrect = (session.reviewCorrect || 0) + 1;
+      }
+      xp = correct ? (helped ? 5 : 10) : 2;
+      p.lastPracticedAt = now;
+      p.seen++; p.lastDay = day(now);
+      var m = Object.assign({seen: 0, correct: 0}, p.modes[q.mode] || {});
+      m.seen++; if (correct && !helped) m.correct++;
+      p.modes[q.mode] = m;
+      if (correct && !helped) {
+        p.correct++;
+        if (eligible) {
+          p.rep++; p.lastFailed = false; p.lastSuccessDay = day(now);
+          p.interval = [0, 1, 3, 7, 14][p.rep] || Math.min(90, Math.max(1, p.interval) * 2);
+          p.due = now + p.interval * 86400000;
+        } else if (p.due <= now) {
+          // A successful same-day relearning moves the next check to tomorrow without granting mastery.
+          p.interval = 1; p.due = now + 86400000;
+        }
+        session.firstCorrect++;
+      } else {
+        p.rep = 0; p.lastFailed = true; p.interval = correct && !input.revealed ? 1 : 0;
+        p.due = now + (p.interval ? 86400000 : 600000);
+        if (correct) session.assisted++; else session.mistakes++;
+      }
+      session.results[q.wordId] = {word: q.word, reading: q.reading, correct: correct && !helped, mode: q.mode, outcome: abandoned ? 'revealed' : helped ? 'assisted' : 'unassisted', answeredAt: now};
+      var today = day(now), yesterday = day(now - 86400000);
+      profile.streak = profile.lastDay === today ? (profile.streak || 1) : profile.lastDay === yesterday ? (profile.streak || 0) + 1 : 1;
+      profile.lastDay = today; profile.days = profile.days || [];
+      if (profile.days.indexOf(today) < 0) profile.days.push(today);
+      profile.xp = (profile.xp || 0) + xp; session.xp += xp;
+    }
+    // A repeat confirms practice, but cannot overwrite the first recall result or award XP twice.
+    if ((!correct || helped) && q.round < 2) {
+      var retry = Object.assign({}, q, {round: q.round + 1, id: q.wordId + ':' + session.index + ':' + (q.round + 1), answered: false, hints: 0, revealed: false, assistedAudio: false});
+      session.queue.splice(Math.min(session.index + 3, session.queue.length), 0, retry);
+    }
+    records[q.wordId] = p;
+    q.answered = true;
+    var result = {correct: correct, helped: helped, xp: xp, answer: q.answer, reading: q.reading,
+      explanation: q.explanation, mode: q.mode, retry: (!correct || helped) && q.round < 2,
+      nextReview: p.due, first: first};
+    q.feedback = result;
+    session.index++;
+    if (session.index >= session.queue.length) {
+      session.completedAt = now;
+
+    }
+    result.completed = !!session.completedAt;
+    session.events[input.eventId] = result;
+    return result;
+  }
+  function dashboard(words, records, profile, sessions, now) {
+    profile.settings = settings(profile.settings);
+    var today = day(now), counts = {new: 0, learning: 0, weak: 0, mastered: 0}, due = 0, next = 0, favorites = 0;
+    words.forEach(function(w) {
+      var p = records[w.id]; counts[status(p)]++;
+      if (p && p.favorite) favorites++;
+      if (p && p.seen) { if (p.due <= now) due++; else if (!next || p.due < next) next = p.due; }
+    });
+    var completed = sessions.filter(function(s) {return s.completedAt;}), todayWords = {};
+    sessions.forEach(function(s) {Object.keys(s.results || {}).forEach(function(id) {
+      var result = s.results[id], at = result.answeredAt || s.completedAt;
+      if (at && day(at) === today) todayWords[id] = true;
+    });});
+    var active = sessions.filter(function(s) {return !s.completedAt && s.total;}).sort(function(a,b) {return b.startedAt-a.startedAt;})[0] || null;
+    var recent = completed.slice().sort(function(a,b) {return b.completedAt-a.completedAt;}).slice(0,7);
+    var totalFirst = 0, correctFirst = 0, reviewTotal = 0, reviewCorrect = 0;
+    sessions.forEach(function(s) {totalFirst += Object.keys(s.results || {}).length; correctFirst += s.firstCorrect; reviewTotal += s.reviewTotal || 0; reviewCorrect += s.reviewCorrect || 0;});
+    var modes = {};
+    Object.keys(records).forEach(function(id) {Object.keys(records[id].modes || {}).forEach(function(mode) {
+      var m = modes[mode] || {seen: 0, correct: 0}, a = records[id].modes[mode]; m.seen += a.seen; m.correct += a.correct; modes[mode] = m;
+    });});
+    var streak = [today, day(now-86400000)].indexOf(profile.lastDay) >= 0 ? (profile.streak || 0) : 0;
+    var badges = [
+      {name: '踏出第一步', icon: '🌱', unlocked: completed.length >= 1, detail: '完成第一輪學習'},
+      {name: '三日同行', icon: '🔥', unlocked: streak >= 3, detail: '連續完成學習 3 天'},
+      {name: '單字收藏家', icon: '📚', unlocked: counts.mastered >= 10, detail: '跨次獨立答對 5 次的單字達 10 個'},
+      {name: '百題練習家', icon: '⭐', unlocked: totalFirst >= 100, detail: '完成 100 道初次作答'},
+      {name: '七日足跡', icon: '🏅', unlocked: (profile.days || []).length >= 7, detail: '累積 7 個學習日'}];
+    return {profile: profile, counts: counts, due: due, nextReview: next, favorites: favorites, streak: streak,
+      active: active, recent: recent, badges: badges, modes: modes, todayCount: Object.keys(todayWords).length,
+      accuracy: totalFirst ? Math.round(correctFirst/totalFirst*100) : null,
+      reviewAccuracy: reviewTotal ? Math.round(reviewCorrect/reviewTotal*100) : null, reviewTotal: reviewTotal,
+      completedSessions: completed.length,
+      available: candidates(words, records, profile.settings, 'daily', now).length,
+      words: words.map(function(w) {return Object.assign({},w,{progress: records[w.id] || progress(),status: status(records[w.id])});})};
+  }
+  function textFallback(session, questionId) {
+    var q = session.queue[session.index];
+    if (!q || q.id !== questionId || q.answered || session.completedAt) throw new Error('題目已更新，請重新載入。');
+    if (q.mode === 'recall' && q.audioFallback) return session;
+    if (q.mode !== 'listening') throw new Error('只有聽力題需要切換文字模式。');
+    q.mode = 'recall'; q.audioFallback = true;
+    q.assistedAudio = true;
+    return session;
+  }
+  return {textFallback: textFallback, normalize: normalize, day: day, defaults: defaults, settings: settings, progress: progress, status: status,
+    candidates: candidates, start: start, answer: answer, dashboard: dashboard};
+})();
+
+</script><script src="./supabase.js"></script><script>
+/* Supabase online adapter. A mutation succeeds only after the server commits it. */
+(function(){
+  const client=window.supabase.createClient('https://lsoadcuagkqahwobfrbq.supabase.co','sb_publishable_f9vd8PlQaBdZXpgC1UCMlA_GRuqj6XR');
+  let user, words, chain=Promise.resolve();
+  const status=text=>{document.getElementById('sync-status').textContent=text;};
+  const check=result=>{if(result.error)throw new Error(result.error.message);return result.data;};
+  const fresh=()=>({profile:{settings:Learning.defaults(),xp:0,streak:0,lastDay:'',days:[],createdAt:Date.now()},records:{},sessions:[]});
+  async function vocabulary(){
+    if(words)return words;
+    const rows=[];
+    for(let from=0;;from+=1000){const page=check(await client.from('vocabulary').select('*').order('id').range(from,from+999));rows.push(...page);if(page.length<1000)break;}
+    if(!rows.length)throw new Error('Supabase 題庫目前沒有資料。');
+    words=rows;return rows;
+  }
+  async function read(){return check(await client.from('learning_states').select('*').eq('user_id',user.id).maybeSingle());}
+  async function run(method,args){
+    if(!user)throw new Error('請先登入。');
+    await vocabulary();
+    const current=await read(),d=current||fresh();
+    const dashboard=()=>Learning.dashboard(words,d.records,d.profile,d.sessions,Date.now());
+    let result,changed=method!=='getDashboard';
+    if(method==='getDashboard')result=dashboard();
+    else if(method==='exportLearningBackup')return {format:'jepop-backup',version:1,exportedAt:Date.now(),data:{profile:d.profile,records:d.records,sessions:d.sessions}};
+    else if(method==='updateSettings'){d.profile.settings=Learning.settings(args[0]);d.profile.settings.onboarding=true;result=dashboard();}
+    else if(method==='startSession'){result=d.sessions.find(s=>!s.completedAt&&s.total);if(result)changed=false;else{result=Learning.start(words,d.records,d.profile,args[0],Date.now(),crypto.randomUUID());if(result.total)d.sessions.push(result);else changed=false;}}
+    else if(method==='answerQuestion'){const s=d.sessions.find(s=>s.id===args[0]);if(!s)throw new Error('找不到學習紀錄。');if(s.events[args[1].eventId])changed=false;const feedback=Learning.answer(s,d.records,d.profile,args[1],Date.now());result={feedback,session:s,dashboard:dashboard()};}
+    else if(method==='switchToTextQuestion'){const s=d.sessions.find(s=>s.id===args[0]);if(!s)throw new Error('找不到學習紀錄。');result=Learning.textFallback(s,args[1]);}
+    else if(method==='toggleFavorite'){if(!words.some(w=>w.id===args[0]))throw new Error('找不到此單字。');const p=d.records[args[0]]||Learning.progress();p.favorite=!p.favorite;d.records[args[0]]=p;result=dashboard();}
+    else throw new Error('不支援此操作。');
+    if(changed){
+      const payload={profile:d.profile,records:d.records,sessions:d.sessions};
+      const saved=current?await client.from('learning_states').update(payload).eq('user_id',user.id).eq('revision',current.revision).select('revision'):await client.from('learning_states').insert({...payload,user_id:user.id}).select('revision');
+      check(saved);if(!saved.data.length)throw new Error('另一個裝置剛更新了進度。請重試，系統會重新讀取最新資料。');
+    }
+    status('已連線 Supabase · '+words.length+' 個單字 · 進度已儲存');
+    return JSON.parse(JSON.stringify(result));
+  }
+  window.previewApi=(method,id,...args)=>{const next=chain.then(()=>run(method,args));chain=next.catch(()=>{});return next.catch(error=>{status('連線或儲存未完成 · 請重試');throw error;});};
+  window.epopCloud={
+    async init(){
+      const session=check(await client.auth.getSession());user=session.session?.user;
+      if(user){document.querySelector('.bottom-nav').hidden=false;return true;}
+      document.querySelector('.bottom-nav').hidden=true;status('Supabase 連線版 · 請登入');
+      document.getElementById('main').innerHTML='<section class="panel"><h1>登入你的日文學習帳號</h1><p>題庫與進度儲存在 Supabase，換裝置登入也能繼續練習。</p><form id="cloud-auth"><div class="field"><label for="auth-email">Email</label><input id="auth-email" type="email" autocomplete="username" required></div><div class="field"><label for="auth-password">密碼</label><input id="auth-password" type="password" minlength="8" autocomplete="current-password" required></div><div class="actions"><button class="button" type="submit">登入</button><button class="button ghost" type="submit" name="signup">註冊帳號</button></div><p id="auth-message" role="status"></p></form></section>';
+      document.getElementById('cloud-auth').addEventListener('submit',async event=>{
+        event.preventDefault();event.stopPropagation();const form=event.currentTarget,notice=document.getElementById('auth-message');
+        const credentials={email:document.getElementById('auth-email').value,password:document.getElementById('auth-password').value};
+        form.querySelectorAll('button').forEach(b=>b.disabled=true);
+        try{const response=event.submitter?.name==='signup'?await client.auth.signUp(credentials):await client.auth.signInWithPassword(credentials);const data=check(response);if(data.session)location.reload();else notice.textContent='已送出註冊。請先開啟 Email 確認信完成驗證，再回到此頁登入。';}
+        catch(error){notice.textContent=error.message;}finally{form.querySelectorAll('button').forEach(b=>b.disabled=false);}
+      });return false;
+    },
+    email:()=>user?.email||'',
+    async logout(){check(await client.auth.signOut());localStorage.removeItem('jepop-draft');location.reload();}
+  };
+})();
+
+</script><script>
+'use strict';
+const $ = (id) => document.getElementById(id);
+const esc = (value) => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const labels = {recall:'句子回想',reading:'漢字讀音',listening:'聽力填空',usage:'助詞・活用',mixed:'適性混合',new:'未學習',learning:'熟悉中',weak:'待加強',mastered:'已掌握'};
+const topics = {all:'全部主題',daily:'日常生活',travel:'日本旅行',food:'飲食點餐',grammar:'助詞與活用'};
+const state = {page:'home',data:null,session:null,feedback:null,answeredQuestion:null,busy:false,filter:'all',search:'',retry:null,draft:{},storage:true};
+function uid() {return window.crypto?.randomUUID ? crypto.randomUUID() : 'learner_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2)+Math.random().toString(36).slice(2);}
+function readLocal(key) {try{return localStorage.getItem(key);}catch(e){state.storage=false;return null;}}
+function writeLocal(key,value) {try{localStorage.setItem(key,value);}catch(e){state.storage=false;}}
+let learnerId = readLocal('jepop-learner-v2') || uid();
+writeLocal('jepop-learner-v2',learnerId);
+function api(method,...args) {
+  if(window.previewApi) return Promise.resolve().then(()=>window.previewApi(method,learnerId,...args));
+  return new Promise((resolve,reject)=>{
+    let finished=false;
+    const timer=setTimeout(()=>{if(!finished){finished=true;reject(new Error('連線等待較久。請重試；同一筆作答不會重複計分。'));}},30000);
+    const finish=(fn,value)=>{if(!finished){finished=true;clearTimeout(timer);fn(value);}};
+    if(!window.google?.script?.run){finish(reject,new Error('請開啟已部署的 Apps Script 網址，或使用 test_preview.html。'));return;}
+    google.script.run.withSuccessHandler(value=>{$('sync-status').textContent='已與 Google 儲存同步';finish(resolve,value);}).withFailureHandler(error=>finish(reject,new Error(error.message||'連線失敗，請再試一次。')))[method](learnerId,...args);
+  });
+}
+async function task(action,retry) {
+  if(state.busy)return;
+  state.busy=true; $('error-panel').hidden=true;
+  document.querySelectorAll('button').forEach(b=>{b.dataset.wasDisabled=b.disabled?'1':'0';b.disabled=true;});
+  try{await action();state.retry=null;}catch(e){$('error-text').textContent=e.message||'發生錯誤，請重試。';$('error-panel').hidden=false;state.retry=retry||(()=>task(action));}
+  finally{state.busy=false;document.querySelectorAll('button').forEach(b=>{if(b.dataset.wasDisabled!==undefined){b.disabled=b.dataset.wasDisabled==='1';delete b.dataset.wasDisabled;}});$('retry-button').disabled=false;}
+}
+function notify(text){$('message').textContent=text;$('message').hidden=false;clearTimeout(state.toast);state.toast=setTimeout(()=>$('message').hidden=true,6000);}
+function day(ts=Date.now()){return new Date(ts+8*3600000).toISOString().slice(0,10);}
+function when(ts){if(!ts)return '完成學習後安排';return new Intl.DateTimeFormat('zh-TW',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit',timeZone:'Asia/Taipei'}).format(ts);}
+function todayText(){return new Intl.DateTimeFormat('zh-TW',{month:'long',day:'numeric',weekday:'long',timeZone:'Asia/Taipei'}).format(new Date());}
+function progress(percent){return `<div class="progress-track"><span style="width:${Math.max(0,Math.min(100,percent))}%"></span></div>`;}
+function button(text,action,kind='secondary',extra=''){return `<button class="button ${kind}" data-action="${action}" ${extra}>${text}</button>`;}
+function header(){const d=state.data;if(!d)return;$('header-streak').textContent=`🔥 ${d.streak} 天`;$('header-level').textContent=`Lv. ${1+Math.floor(d.profile.xp/100)}`;$('xp-fill').style.width=(d.profile.xp%100)+'%';$('xp-text').textContent=`${d.profile.xp%100} / 100 XP`;}
+function go(page){if(state.busy)return;state.keepKeyboard=false;state.composing=false;window.speechSynthesis?.cancel();state.page=page;render();window.scrollTo({top:0,behavior:'instant'});}
+function render(){
+  if(!state.data)return;header();
+  document.querySelectorAll('[data-page]').forEach(b=>{b.classList.toggle('active',b.dataset.page===state.page||(state.page==='quiz'&&b.dataset.page==='home'));b.setAttribute('aria-current',b.classList.contains('active')?'page':'false');});
+  const view={home:homeView,words:wordsView,stats:statsView,settings:settingsView,quiz:quizView,summary:summaryView}[state.page]||homeView;
+  $('main').innerHTML=view();
+  if(state.page==='quiz'&&state.feedback&&state.keepKeyboard)$('next-input')?.focus();
+  if(state.page==='quiz'&&!state.feedback){const input=$('answer-input');if(input){input.value=state.draft.answer||'';if(window.innerWidth>600||state.keepKeyboard)input.focus();}}
+}
+function homeView(){const d=state.data,s=d.profile.settings,active=d.active,done=d.todayCount>=s.goal;
+  return `<div class="title-row"><div><div class="eyebrow">${esc(todayText())}</div><h1>${done?'今天的努力，已經留下來了。':'今天，也往前一點。'}</h1><p class="muted">${esc(topics[s.topic])} · ${esc(s.level==='all'?'不限程度':s.level+' 練習')} · ${esc(labels[s.mode])}</p></div></div>
+  ${!s.onboarding?`<div class="panel" style="margin-bottom:18px"><h3>先選一個你想做到的小目標</h3><p class="muted">從每天 5 題開始，或選擇旅行、日常、文法。程度由你先選，混合模式會優先練習較弱的技能。</p>${button('設定我的學習計畫','settings','','')}</div>`:''}
+  <section class="hero"><span class="hero-mark" aria-hidden="true">${done?'✦':'学'}</span><div class="eyebrow">YOUR DAILY PRACTICE</div><h2>${active?'上次的練習，接著完成。':done?'完成了，明天再一起。':'每天 '+s.goal+' 題，累積你的日文。'}</h2>
+  <p class="muted">${active?`已完成 ${active.index} 次作答，包含錯題重練。`:d.available?`目前有 ${d.due} 題到期複習，系統會優先安排。`:'目前沒有到期題目，可以練錯題、收藏，或換個主題。'}</p>
+  ${progress(d.todayCount/s.goal*100)}<div class="between"><small>今日已完成 ${d.todayCount}／${s.goal} 題</small><span class="tag green">${done?'今日目標達成':'每題立即累積'}</span></div>
+  <div class="actions">${button(active?'繼續這一輪 →':done?'再練一輪 →':'開始今日學習 →','start','','data-kind="daily" '+(!active&&!d.available?'disabled':''))}${button('調整計畫','settings','ghost')}${d.due?button('只複習 5 題','start','ghost','data-kind="review"'):''}</div></section>
+  <div class="grid"><div class="tile"><small>到期複習</small><strong class="number-green">${d.due}</strong><small>優先鞏固記憶</small></div><div class="tile"><small>待加強</small><strong>${d.counts.weak}</strong><small>提示或錯題紀錄</small></div><div class="tile"><small>已掌握</small><strong>${d.counts.mastered}</strong><small>跨次無提示完成 5 次</small></div></div>
+  <div class="grid two"><section class="panel"><h3>↻ 把忘記的，再記回來</h3><p class="muted">錯題與提示題有自己的練習入口。</p>${button('重練待加強 '+d.counts.weak+' 題','start','secondary','data-kind="weak" '+(!d.counts.weak&&!active?'disabled':''))}</section><section class="panel"><h3>☆ 你的專屬單字本</h3><p class="muted">收藏真正想用的詞，讓學習貼近生活。</p>${button('練習收藏 '+d.favorites+' 題','start','secondary','data-kind="favorites" '+(!d.favorites&&!active?'disabled':''))}</section></div>
+  <section class="panel"><div class="between"><h3>下次回來，已經安排好了</h3><span class="tag">台北時間</span></div><p class="muted">${d.due?`還有 ${d.due} 題可以複習。`:d.nextReview?`下一批複習：${when(d.nextReview)}。`:'完成第一輪，就會有你的複習安排。'}你的每日提醒時間是 ${esc(s.reminder)}。</p><button class="text-link" data-action="calendar">下載每日提醒到行事曆 ↗</button><p class="note">下載後需在行事曆中匯入，並確認通知設定。</p></section>`;
+}
+function loadDraft(){const q=state.session?.queue[state.session.index];const key=q?state.session.id+':'+q.id:'';let draft={};try{draft=JSON.parse(readLocal('jepop-draft')||'{}');}catch(e){}state.draft=draft.key===key?draft:{key,answer:'',hints:0,revealed:false,assistedAudio:false};}
+function saveDraft(){writeLocal('jepop-draft',JSON.stringify(state.draft));}
+function sentenceHtml(text,blank=true){
+  const tokens=String(text).split(/(\{[^|}]+\|[^}]+\}|(?:お|ご)?[\u3400-\u9fff々〆ヵヶ][\u3400-\u9fff々〆ヵヶぁ-ゖ]*\[[^\]]+\])/g);
+  return tokens.map(t=>{let m=t.match(/^\{([^|}]+)\|([^}]+)\}$/);if(m)return blank?'<span class="blank">？</span>':`<ruby>${esc(m[1])}<rt>${esc(m[2])}</rt></ruby>`;
+    m=t.match(/^([^\[\]]+)\[([^\]]+)\]$/);if(!m)return esc(t);const prefix=/^[おご]/.test(m[1])&&!m[2].startsWith(m[1][0])?m[1][0]:'';return `${esc(prefix)}<ruby>${esc(prefix?m[1].slice(1):m[1])}<rt>${esc(m[2])}</rt></ruby>`;}).join('');
+}
+function speechText(text){return String(text).replace(/\{[^|}]+\|([^}]+)\}/g,'$1').replace(/((?:お|ご)?[\u3400-\u9fff々〆ヵヶ][\u3400-\u9fff々〆ヵヶぁ-ゖ]*)\[([^\]]+)\]/g,(_,base,reading)=>(/^[おご]/.test(base)&&!reading.startsWith(base[0])?base[0]:'')+reading);}
+function illustrationHtml(q){
+  if(!q.image_url)return '';
+  let url;try{url=new URL(q.image_url);if(url.protocol!=='https:')return '';}catch(e){return '';}
+  return `<figure class="question-illustration"><img src="${esc(url.href)}" alt="${esc(q.image_alt||'題目示意圖')}" referrerpolicy="no-referrer"><figcaption>示意圖 · 答題參考（圖片未載入時可繼續作答）</figcaption></figure>`;
+}
+function quizView(){const s=state.session,q=state.feedback?state.answeredQuestion:s?.queue[s.index];if(!s||!q)return '<div class="empty">這一輪已完成。'+button('查看成果','summary')+'</div>';
+  const done=Object.keys(s.results).length,feedback=state.feedback,reading=q.mode==='reading',listening=q.mode==='listening';
+  return `<div class="between"><button class="text-link" data-action="home">← 暫停，稍後繼續</button><span class="tag ${q.round?'amber':'green'}">${q.round?'錯題重練 '+q.round+'/2':q.wasNew?'新內容':'複習'}</span></div>
+  <h1 style="font-size:24px;margin-top:20px">${esc(labels[q.mode])}</h1>${progress(done/s.total*100)}<div class="quiz-meta"><span>本輪 ${done}／${s.total} 題已作答</span><span>還有 ${Math.max(0,s.queue.length-s.index)} 次練習（含重練）</span></div>
+  <section class="quiz-card"><span class="eyebrow">${reading?'READ THE WORD':listening?'LISTEN & RECALL':q.mode==='usage'?'USE IT IN CONTEXT':'RECALL IN CONTEXT'}</span>
+  ${reading?`<p class="quiz-prompt">這個${q.word.length>1?'單字':'字'}怎麼讀？請輸入假名。</p><div class="sentence">${esc(q.answer)}</div>`:listening?`<div class="audio-stage">${button('▶ 播放日文句子','audio','secondary')}<p class="muted">聽完整句子，填入符合提示的日文。</p>${!feedback?button('無法播放？改用文字練習','text-fallback','ghost small',state.draft.pending?'disabled':''):''}</div><p class="quiz-prompt">要填的意思：${esc(q.meaning)}</p>`:`<p class="quiz-prompt">${esc(q.translation.replace(/\*\*/g,''))}</p><div class="sentence">${sentenceHtml(q.sentence)}</div>`}
+  ${illustrationHtml(q)}
+  ${feedback?'':`<form id="answer-form"><label class="answer-label" for="answer-input">${reading?'輸入假名（平假名／片假名皆可）':'輸入日文（漢字或假名皆可）'}</label><input id="answer-input" class="answer-input" type="text" lang="ja" maxlength="200" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="next" aria-describedby="answer-status" placeholder="${reading?'例：べんきょう':'在這裡輸入答案'}" value="${esc(state.draft.answer)}" ${state.draft.pending?'disabled':''}>
+  <div id="answer-status" class="answer-status" role="status" aria-live="polite" aria-atomic="true">${state.draft.pending?'正在送出…':'可以不限次修改，答對會自動送出。'}</div>
+  ${state.draft.hints?`<div class="hint">${state.draft.hints===1?'讀音共有 '+q.reading.length+' 個假名字元。':state.draft.hints===2?'讀音開頭是「'+esc(q.reading[0])+'」。':'答案：'+esc(q.answer)+'（'+esc(q.reading)+'）'}</div>`:''}
+  <div class="actions"><button class="button" type="submit" ${state.draft.pending?'disabled':''}>${state.draft.pending?'等待確認…':'檢查答案'}</button>${button('💡 提示 '+(state.draft.hints||0)+'/3','hint','secondary','type="button" '+(state.draft.pending?'disabled':''))}</div></form>
+  ${!listening?`<p class="note">${button('聽句子（記為提示）','audio','ghost small','type="button" '+(state.draft.pending?'disabled':''))} ${reading?'讀音題':'回想題'}不會自動播放答案。</p>`:'<p class="note">聽力模式可重播；首次作答另行統計。</p>'}`}
+  ${feedback&&state.keepKeyboard&&window.innerWidth<=600?'<label class="answer-label" for="next-input">按鍵盤下一步或下方按鈕繼續</label><input id="next-input" class="answer-input next-input" type="text" enterkeyhint="next" autocomplete="off" aria-label="按 Enter 進入下一題" placeholder="已儲存，按下一步繼續">':''}
+  ${feedback?`<div class="feedback ${feedback.correct?'':'wrong'}" role="status"><h3>${feedback.correct?(feedback.helped?'有提示也完成了，稍後再試一次。':'答對了！'):'先理解，再練一次。'} <span class="tag">${feedback.xp?'+'+feedback.xp+' XP':'重練不重複計分'}</span></h3><p class="answer">${esc(feedback.answer)} <small>（${esc(feedback.reading)}）</small></p><p>${esc(feedback.explanation)}</p><p class="sentence" style="font-size:20px">${sentenceHtml(q.sentence,false)}</p><p class="muted">${esc(q.translation.replace(/\*\*/g,''))}</p><p class="note">${feedback.retry?'已安排稍後重練；若還不熟悉，仍會保留在待加強。':'下次複習：'+when(feedback.nextReview)+'。'}</p><div class="actions">${button(feedback.completed?'查看本輪成果 →':'下一題 →','next','')}${button('▶ 聽完整句子','audio','secondary')}</div></div>`:''}</section><p class="note">未用提示答對 +10 XP · 提示後答對 +5 XP · 第三次提示放棄 +2 XP。自動提醒只給方向，不影響計分與複習排程，也不占提示額度。</p>`;
+}
+async function start(kind){await task(async()=>{const s=await api('startSession',kind||'daily');if(!s.total){notify('目前沒有符合條件的題目。可以換個主題，或等到複習時間再回來。');return;}state.session=s;state.data.active=s;state.feedback=null;state.page='quiz';loadDraft();render();if(state.draft.pending){notify('找到尚未確認的作答，正在恢復。');setTimeout(()=>submitPending(),0);}});}
+function normalizeAnswer(value){return String(value||'').normalize('NFKC').replace(/[\u30a1-\u30f6]/g,c=>String.fromCharCode(c.charCodeAt(0)-0x60)).replace(/[\s\u3000]/g,'').toLowerCase();}
+function acceptedAnswers(q){return [...new Set((q.mode==='reading'?[q.reading].concat((q.aliases||[]).filter(a=>/^[\u3040-\u30ff]+$/.test(a))):[q.answer,q.reading].concat(q.aliases||[])).map(normalizeAnswer))];}
+function closeAnswerHint(value,answers){
+  const input=Array.from(normalizeAnswer(value));if(!input.length)return '';
+  for(const answer of answers){
+    const target=Array.from(answer);if(target.length<2||Math.abs(target.length-input.length)>1)continue;
+    let i=0;while(i<Math.min(input.length,target.length)&&input[i]===target[i])i++;
+    if(target.length===input.length+1&&input.slice(i).join('')===target.slice(i+1).join(''))return '很接近了，再確認讀音是否完整。';
+    if(input.length===target.length+1&&input.slice(i+1).join('')===target.slice(i).join(''))return '很接近了，再檢查一下字數。';
+    if(input.length===target.length&&i<target.length){
+      if(input.slice(i+1).join('')===target.slice(i+1).join(''))return '很接近了，注意假名的大小、清濁音或字形。';
+      if(i+1<target.length&&input[i]===target[i+1]&&input[i+1]===target[i]&&input.slice(i+2).join('')===target.slice(i+2).join(''))return '很接近了，再確認字的順序。';
+    }
+  }
+  return '';
+}
+function answerStatus(text,kind=''){const status=$('answer-status');if(status){status.textContent=text;status.className='answer-status '+kind;}const input=$('answer-input');if(input){input.classList.toggle('correct',kind==='correct');}}
+async function checkLiveAnswer(){
+  if(state.page!=='quiz'||state.busy||state.feedback||state.draft.pending||state.composing)return;
+  const q=state.session?.queue[state.session.index],input=$('answer-input');if(!q||!input)return;
+  clearTimeout(state.liveHintTimer);
+  state.draft.answer=input.value;saveDraft();
+  const value=normalizeAnswer(input.value),answers=acceptedAnswers(q);
+  if(!value){answerStatus('可以不限次修改，答對會自動送出。');return;}
+  if(answers.includes(value)){answerStatus('答對了！正在送出…','correct');await submitAnswer();return;}
+  const near=closeAnswerHint(value,answers);
+  answerStatus('還沒答對，可以繼續修改。','near');
+  if(near){const draftKey=state.draft.key;state.liveHintTimer=setTimeout(()=>{
+    if(state.page!=='quiz'||state.composing||state.busy||state.feedback||state.draft.pending||state.draft.key!==draftKey||normalizeAnswer($('answer-input')?.value)!==value)return;
+    state.draft.autoHint=true;saveDraft();answerStatus(near,'near');
+  },450);}
+}
+async function hint(){
+  if(state.busy||state.draft.pending||state.feedback||state.composing)return;
+  state.draft.answer=$('answer-input')?.value??state.draft.answer??'';
+  state.draft.hints=Math.min(3,(state.draft.hints||0)+1);
+  state.draft.revealed=state.draft.hints===3;saveDraft();
+  if(state.draft.revealed){await submitAnswer();return;}
+  render();$('answer-input')?.focus();
+}
+async function submitAnswer(){
+  if(state.busy||state.feedback||state.composing)return;
+  const q=state.session.queue[state.session.index],value=$('answer-input')?.value??state.draft.answer??'';
+  const abandoned=(state.draft.hints||0)>=3;
+  if(!state.draft.pending&&!abandoned&&!acceptedAnswers(q).includes(normalizeAnswer(value))){
+    const near=closeAnswerHint(value,acceptedAnswers(q));if(near)state.draft.autoHint=true;
+    state.draft.answer=value;saveDraft();answerStatus(near||(value.trim()?'還沒答對，可以繼續修改。':'可以不限次修改，答對會自動送出。'),'near');return;
+  }
+  if(!state.draft.pending){state.draft.answer=value;state.draft.pending={eventId:uid(),questionId:q.id,answer:value,hints:state.draft.hints||0,revealed:abandoned,autoHint:!!state.draft.autoHint,assistedAudio:!!state.draft.assistedAudio};saveDraft();}
+  const input=$('answer-input');if(input){input.readOnly=true;state.keepKeyboard=true;}answerStatus('正在儲存…','correct');await submitPending();
+}
+async function submitPending(){await task(async()=>{const q=state.session.queue[state.session.index];const result=await api('answerQuestion',state.session.id,state.draft.pending);state.answeredQuestion=q;state.feedback=result.feedback;state.session=result.session;state.data=result.dashboard;state.draft={};saveDraft();render();if(window.innerWidth>600)document.querySelector('[data-action="next"]')?.focus();},submitPending);}
+function next(){window.speechSynthesis?.cancel();state.feedback=null;if(state.session.completedAt){state.page='summary';}else{loadDraft();state.page='quiz';}render();window.scrollTo({top:0,behavior:'instant'});}
+function summaryView(){const s=state.session;if(!s)return '<div class="empty">完成一輪後就能看到成果。</div>';const weak=Object.values(s.results).filter(r=>!r.correct);return `<div class="summary celebrate"><div class="summary-icon">✦</div><div class="eyebrow">A LITTLE BETTER, EVERY DAY</div><h1>這一輪，完成了。</h1><p class="muted">今天的每一次回想，都留下了紀錄。</p></div>
+  <div class="grid"><div class="tile"><small>無提示完成</small><strong class="number-green">${s.firstCorrect}／${s.total}</strong><small>${s.total?Math.round(s.firstCorrect/s.total*100):0}% 正確率</small></div><div class="tile"><small>本輪新學</small><strong>${s.fresh}</strong><small>個新內容</small></div><div class="tile"><small>獲得經驗</small><strong>+${s.xp}</strong><small>XP</small></div></div>
+  <section class="panel"><p>無提示完成 ${s.firstCorrect} 題 · 提示後完成 ${s.assisted} 題 · 揭露答案 ${s.mistakes} 題</p><h3>${weak.length?'這幾個，再給它們一點時間。':'這輪都能獨立回答，很好！'}</h3>${weak.length?`<ul class="mini-list">${weak.map(w=>`<li>${esc(w.word)}（${esc(w.reading)}）<span class="tag">${esc(labels[w.mode])}</span></li>`).join('')}</ul><p class="muted">重練成功也會保留本輪原始紀錄；隔一段時間再答對，才代表記憶更穩定。</p>`:'<p class="muted">系統已安排間隔複習，下次會換個句子確認記憶。</p>'}</section>
+  <section class="hero" style="margin-top:18px"><h2>你的下一步</h2><p class="muted">${state.data.due?'還有 '+state.data.due+' 題到期複習。':state.data.nextReview?'下一批複習在 '+when(state.data.nextReview)+'。':'可以更換主題，繼續探索。'}${state.data.available?'目前另有 '+state.data.available+' 題可安排。':''}</p><div class="actions">${button('完成今天，回首頁','home','')}${button('再練待加強','start','secondary','data-kind="weak" '+(!state.data.counts.weak?'disabled':''))}</div></section><p class="note">本頁是這一輪的成果，不代表全部題庫都已完成。每天完成一題就留下學習足跡；同日重練同字不重複計入目標。</p>`;}
+function wordsView(){return `<div class="eyebrow">YOUR WORD COLLECTION</div><h1>一個字，一個新可能。</h1><p class="muted">${state.data.words.length} 個內容 · 收藏 ${state.data.favorites} 個</p><label class="answer-label" for="word-search">搜尋日文、假名或中文</label><input id="word-search" type="search" placeholder="搜尋單字、讀音或意思…" value="${esc(state.search)}"><div class="filter-row">${[['all','全部'],['favorites','☆ 收藏'],['weak','待加強'],['new','未學習'],['mastered','已掌握']].map(([k,v])=>`<button data-filter="${k}" class="${state.filter===k?'active':''}">${v}</button>`).join('')}</div><div class="panel" id="word-results">${wordRows()}</div>`;}
+function wordRows(){const needle=state.search.trim().toLowerCase();const list=state.data.words.filter(w=>(state.filter==='all'||(state.filter==='favorites'?w.progress.favorite:w.status===state.filter))&&(!needle||[w.word,w.kana,w.meaning].some(t=>t.toLowerCase().includes(needle))));return list.length?list.map(w=>`<article class="word-row"><div><div class="between"><h3>${esc(w.word)}</h3><span class="tag ${w.status==='weak'?'amber':w.status==='mastered'?'green':''}">${labels[w.status]}</span></div><div class="kana">${esc(w.kana)}</div><p>${esc(w.meaning)}</p><small>${esc(w.level)} · ${esc(topics[w.topic]||w.topic)}${w.progress.seen?' · 下次 '+when(w.progress.due):''}</small></div><div class="word-actions"><button class="icon-button ${w.progress.favorite?'selected':''}" data-favorite="${esc(w.id)}" aria-label="${w.progress.favorite?'取消收藏':'收藏'}${esc(w.word)}" aria-pressed="${w.progress.favorite}">${w.progress.favorite?'★':'☆'}</button><button class="icon-button" data-speak="${esc(w.id)}" aria-label="播放${esc(w.word)}的讀音">▶</button></div></article>`).join(''):'<div class="empty">沒有符合的內容，試試其他關鍵字或分類。</div>';}
+function statsView(){const d=state.data,days=d.profile.days||[],week=Array.from({length:7},(_,i)=>day(Date.now()-(6-i)*86400000));return `<div class="eyebrow">PROGRESS THAT MEANS SOMETHING</div><h1>看見自己，慢慢變強。</h1><p class="muted">經驗值記錄投入，無提示回想記錄學習表現。</p><div class="grid"><div class="tile"><small>累積經驗值</small><strong>${d.profile.xp}</strong><small>XP</small></div><div class="tile"><small>無提示完成率</small><strong class="number-green">${d.accuracy===null?'—':d.accuracy+'%'}</strong><small>包含進行中的練習</small></div><div class="tile"><small>累積學習日</small><strong>${days.length}</strong><small>連續 ${d.streak} 天</small></div></div><section class="panel"><h3>隔天以後，還記得多少？</h3><p><strong style="font-size:28px;color:var(--green)">${d.reviewAccuracy===null?'—':d.reviewAccuracy+'%'}</strong> <span class="muted">跨日無提示回想率</span></p><p class="note">共 ${d.reviewTotal} 次跨日複習。當天反覆練習不計入，每題完成後更新。</p></section><section class="panel" style="margin-top:18px"><h3>最近七天的足跡 · ${week.filter(k=>days.includes(k)).length}／7 天</h3><div class="week">${week.map(dayKey=>`<div class="day ${days.includes(dayKey)?'done':''}">${dayKey.slice(5)}<span>${days.includes(dayKey)?'✓':'·'}</span></div>`).join('')}</div></section>
+  <div class="section-label"><h2>每一種能力，都分開看</h2></div><div class="panel">${['recall','reading','listening','usage'].map(mode=>{const m=d.modes[mode]||{seen:0,correct:0};return `<div style="margin-bottom:18px"><div class="between"><span>${labels[mode]}</span><small>${m.seen?`${m.correct}／${m.seen} 次無提示完成`:'還沒有紀錄'}</small></div>${progress(m.seen?m.correct/m.seen*100:0)}</div>`;}).join('')}<p class="note">無提示完成允許修改答案，並不表示一次輸入就答對。提示後完成與揭露答案會分開記錄。這些數字不等同 JLPT 程度測驗。</p></div>
+  <div class="section-label"><h2>記憶狀態</h2></div><div class="panel">${Object.entries(d.counts).map(([k,v])=>`<div class="between"><span>${labels[k]}</span><span>${v} 個</span></div>${progress(v/d.words.length*100)}`).join('')}<p class="note">學過但忘記會保留在「待加強」，不會變回未學習。已掌握表示跨次無提示完成至少 5 次，仍會安排複習。</p></div>
+  <div class="section-label"><h2>你的里程碑</h2></div><div class="badge-grid">${d.badges.map(b=>`<div class="badge ${b.unlocked?'':'locked'}"><div class="badge-icon">${b.icon}</div><strong>${esc(b.name)}</strong><small>${esc(b.detail)}</small><small>${b.unlocked?'已解鎖':'尚未解鎖'}</small></div>`).join('')}</div>
+  <div class="section-label"><h2>最近完成的練習</h2></div><div class="panel">${d.recent.length?d.recent.map(s=>`<div class="history-row"><span>${when(s.completedAt)}<br><small>${s.total} 題 · 新學 ${s.fresh} 題</small><br><button class="text-link" data-session="${esc(s.id)}">查看這輪成果</button></span><span>無提示完成 ${s.firstCorrect}／${s.total}<br><small>+${s.xp} XP · ${Math.max(1,Math.round((s.completedAt-s.startedAt)/60000))} 分鐘（含暫停）</small></span></div>`).join(''):'<div class="empty">完成第一輪，留下你的第一筆成長紀錄。</div>'}</div>`;}
+function options(values,selected){return Object.entries(values).map(([v,label])=>`<option value="${esc(v)}" ${String(selected)===v?'selected':''}>${esc(label)}</option>`).join('');}
+function settingsView(){const s=state.data.profile.settings;return `<div class="eyebrow">MAKE IT YOURS</div><h1>找到適合你的節奏。</h1><p class="muted">設定會套用到下一輪；進行中的練習可以繼續完成。到期複習會優先保留，不受新主題篩選限制。</p><form id="settings-form" class="panel"><div class="grid two"><div class="field"><label for="setting-goal">每天想完成幾題？</label><select id="setting-goal">${options({5:'5 題 · 輕鬆開始',10:'10 題 · 日常練習',15:'15 題 · 多一點挑戰',20:'20 題 · 專注累積'},s.goal)}</select></div><div class="field"><label for="setting-level">目前適合的內容程度</label><select id="setting-level">${options({N5:'N5 · 基礎日文',N4:'N4 · 進階基礎',N3:'N3 · 中級日文',all:'不限程度'},s.level)}</select><small>目前使用自選程度，不會將 XP 換算成日文能力。</small></div><div class="field"><label for="setting-topic">我想學會…</label><select id="setting-topic">${options(topics,s.topic)}</select></div><div class="field"><label for="setting-mode">練習方式</label><select id="setting-mode">${options(Object.fromEntries(['recall','reading','listening','usage','mixed'].map(k=>[k,labels[k]])),s.mode)}</select><small>適性混合會優先練較弱或尚未練習的技能。</small></div></div><div class="field"><label for="setting-reminder">每日提醒時間（台北時間）</label><input id="setting-reminder" type="time" value="${esc(s.reminder)}" required><small>儲存後可下載行事曆提醒。網頁本身不會在背景發送通知。</small></div><button class="button" type="submit">儲存我的學習計畫</button></form>
+  <section class="panel" style="margin-top:20px"><h3>讓明天的自己記得回來</h3><p class="muted">將每天的練習放進行事曆，匯入後可自行調整通知。</p>${button('下載每日提醒 .ics','calendar','secondary')}</section>
+  <section class="panel" style="margin-top:20px"><h3>你的學習檔案</h3><p class="muted">${window.epopCloud?'已登入：'+esc(window.epopCloud.email())+'。進度儲存在 Supabase，其他裝置登入同一帳號即可接續。':'此瀏覽器有獨立的學習紀錄。保留瀏覽器網站資料，才能再次找到同一份進度。'}</p><p class="note">${window.epopCloud?'作答需要網路連線，成功儲存後才會顯示結果。':'你可以匯出進度，再於其他裝置匯入。'}</p>${window.epopCloud?button('登出帳號','cloud-logout','ghost'):''}${window.previewApi?'':button('匯入原本試算表的舊版進度','import','ghost')}<p class="note">舊版工作表會保留；匯入只適用於尚無新紀錄的學習檔案，且全站只能匯入一次。</p></section><section class="panel" style="margin-top:20px"><h3>備份與恢復</h3><p class="muted">匯出包含學習進度、設定與進行中的練習。${window.epopCloud?'雲端版可直接跨裝置登入，目前提供匯出備份。':'匯入會建立新檔案，保留此裝置原本的紀錄。'}</p><div class="actions">${button('匯出進度 JSON','backup-export','secondary')}${window.epopOffline?button('選擇備份檔','backup-choose','ghost'):''}${window.EPOP_PWA&&!window.epopCloud?button('立即同步','sync-now','ghost'):''}</div><div id="backup-review"></div><p class="note">${window.epopCloud?'可加入主畫面；練習時請保持網路連線。':window.EPOP_PWA?'先連線開啟一次並完成下載，之後可離線練習。手機可使用瀏覽器選單「加入主畫面」。離線語音取決於裝置日文語音是否可用。':'可將備份匯入獨立安裝版；手機安裝需要 HTTPS 網址。'}</p></section>`;}
+
+async function saveSettings(){const settings={goal:Number($('setting-goal').value),level:$('setting-level').value,topic:$('setting-topic').value,mode:$('setting-mode').value,reminder:$('setting-reminder').value,onboarding:true};await task(async()=>{state.data=await api('updateSettings',settings);state.page='home';render();notify('計畫已儲存，下一輪會使用新的設定。');});}
+function speak(text,slow=false){if(!('speechSynthesis'in window)){notify('此瀏覽器不支援語音播放，請改用回想或讀音模式。');return false;}speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.lang='ja-JP';u.rate=slow?.75:.9;const voice=speechSynthesis.getVoices().find(v=>v.lang.startsWith('ja'));if(voice)u.voice=voice;u.onerror=e=>{if(!['interrupted','canceled'].includes(e.error))notify('語音播放失敗，請確認装置日文語音可用，或改用其他題型。');};speechSynthesis.speak(u);return true;}
+async function textFallback(){if(state.draft.pending)return;await task(async()=>{const q=state.session.queue[state.session.index];state.session=await api('switchToTextQuestion',state.session.id,q.id);state.data.active=state.session;state.draft.assistedAudio=true;saveDraft();render();notify('已切換為文字練習；這題不計入獨立回想或聽力成績。');});}
+function audio(){const q=state.feedback?state.answeredQuestion:state.session?.queue[state.session.index];if(!q)return;if(!state.feedback&&q.mode!=='listening'){state.draft.assistedAudio=true;saveDraft();notify('已使用語音提示，這題會另外記錄。');}speak(speechText(q.sentence));}
+function calendar(){const time=state.data.profile.settings.reminder;const d=new Date(Date.now()+8*3600000);let date=day();if(d.toISOString().slice(11,16)>=time)date=day(Date.now()+86400000);const stamp=date.replace(/-/g,'')+'T'+time.replace(':','')+'00';const lines=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Japanese Epop//Learning Reminder//ZH','CALSCALE:GREGORIAN','BEGIN:VTIMEZONE','TZID:Asia/Taipei','BEGIN:STANDARD','DTSTART:19700101T000000','TZOFFSETFROM:+0800','TZOFFSETTO:+0800','TZNAME:CST','END:STANDARD','END:VTIMEZONE','BEGIN:VEVENT','UID:'+uid()+'@japanese-epop.local','DTSTAMP:'+new Date().toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,''),'DTSTART;TZID=Asia/Taipei:'+stamp,'DURATION:PT10M','RRULE:FREQ=DAILY','SUMMARY:日文 e pop：每天一點，真的記住','DESCRIPTION:完成今天的日文練習與複習。','BEGIN:VALARM','TRIGGER:PT0M','ACTION:DISPLAY','DESCRIPTION:今天也學一點日文','END:VALARM','END:VEVENT','END:VCALENDAR'];const blob=new Blob([lines.join('\r\n')+'\r\n'],{type:'text/calendar;charset=utf-8'});const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='日文epop_每日學習提醒.ics';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);notify('提醒已下載，請匯入你的行事曆。重複匯入可能產生重複提醒。');}
+function downloadJson(name,value){const url=URL.createObjectURL(new Blob([JSON.stringify(value,null,2)],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+async function exportBackup(){await task(async()=>{const backup=window.epopOffline?window.epopOffline.export(learnerId):await api('exportLearningBackup');if(!window.epopOffline)backup.draft=state.draft;downloadJson('日文epop-進度-'+day()+'.json',backup);notify('備份已匯出，請保留在安全的位置。');});}
+async function restoreBackup(){if(!state.backupToRestore)return;await task(async()=>{learnerId=await window.epopOffline.restore(state.backupToRestore);state.backupToRestore=null;state.feedback=null;state.session=null;state.draft={};state.data=await api('getDashboard');state.page='home';render();notify('已在新的學習檔案恢復進度，原檔案仍保留。');});}
+document.addEventListener('change',async e=>{if(e.target.id!=='backup-file')return;const file=e.target.files?.[0];if(!file)return;state.backupToRestore=null;try{if(file.size>10*1024*1024)throw new Error('備份超過 10 MB，無法匯入。');const backup=JSON.parse(await file.text());const data=window.epopOffline.validateBackup(backup);state.backupToRestore=backup;$('backup-review').innerHTML='<p class="note">備份包含 '+data.sessions.length+' 輪練習、'+Object.keys(data.records).length+' 個單字紀錄。原檔案會保留。</p>'+button('確認恢復為新檔案','backup-restore','secondary');}catch(error){notify('無法匯入：'+error.message);}finally{e.target.value='';}});
+document.addEventListener('click',e=>{const nav=e.target.closest('[data-page]');if(nav){go(nav.dataset.page);return;}const b=e.target.closest('button');if(!b||b.disabled||state.busy)return;
+  if(b.dataset.session){const session=state.data.recent.find(s=>s.id===b.dataset.session);if(session){state.session=session;go('summary');}return;}
+  if(b.dataset.filter){state.filter=b.dataset.filter;render();return;}
+  if(b.dataset.favorite){task(async()=>{state.data=await api('toggleFavorite',b.dataset.favorite);render();});return;}
+  if(b.dataset.speak){const word=state.data.words.find(w=>w.id===b.dataset.speak);if(word)speak(word.kana);return;}
+  const action=b.dataset.action;if(action==='cloud-logout'){task(()=>window.epopCloud.logout());return;}if(action==='backup-export'){exportBackup();return;}if(action==='backup-choose'){$('backup-file').click();return;}if(action==='backup-restore'){restoreBackup();return;}if(action==='sync-now'){window.epopOffline?.sync(learnerId);return;}if(['home','words','stats','settings','summary'].includes(action)){go(action);return;}
+  if(action==='start')start(b.dataset.kind);else if(action==='hint')hint();else if(action==='next')next();else if(action==='audio')audio();else if(action==='text-fallback')textFallback();else if(action==='calendar')calendar();else if(action==='import')task(async()=>{state.data=await api('importLegacyProgress');render();notify('舊版進度已匯入，原本的工作表完整保留。');});
+});
+document.addEventListener('submit',e=>{if(e.target.id==='answer-form'){e.preventDefault();if(!state.composing)submitAnswer();}if(e.target.id==='settings-form'){e.preventDefault();saveSettings();}});
+document.addEventListener('compositionstart',e=>{if(e.target.id==='answer-input'){state.composing=true;clearTimeout(state.liveHintTimer);}});
+document.addEventListener('compositionend',e=>{if(e.target.id!=='answer-input')return;setTimeout(()=>{state.composing=false;if(state.page==='quiz'&&$('answer-input')===e.target)checkLiveAnswer();},0);});
+document.addEventListener('keydown',e=>{if(e.target.id==='next-input'&&e.key==='Enter'&&!e.isComposing){e.preventDefault();if(!state.busy)next();return;}if(e.target.id==='answer-input'&&e.key==='Enter'&&(e.isComposing||state.composing||e.keyCode===229)){e.preventDefault();}});
+document.addEventListener('input',e=>{if(e.target.id==='word-search'){state.search=e.target.value;$('word-results').innerHTML=wordRows();}if(e.target.id==='answer-input'){state.draft.answer=e.target.value;saveDraft();if(!e.isComposing&&!state.composing)return checkLiveAnswer();}});
+document.addEventListener('DOMContentLoaded',()=>{$('retry-button').onclick=()=>state.retry?.();document.querySelector('.brand').onclick=e=>{e.preventDefault();go('home');};if(window.previewApi&&!window.EPOP_PWA)$('preview-banner').hidden=false;if(!state.storage)notify('瀏覽器阻擋儲存，關閉頁面後可能無法取回此學習檔案。');task(async()=>{if(window.epopCloud&&!await window.epopCloud.init())return;state.data=await api('getDashboard');render();});});
+</script>
+
+<script src="./install.js"></script>
+</body>
+</html>

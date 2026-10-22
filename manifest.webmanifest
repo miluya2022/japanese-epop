@@ -1,0 +1,10 @@
+{
+  "id":"./", "name":"日文 e pop｜每天一點，真的記住", "short_name":"日文 e pop",
+  "lang":"zh-Hant", "start_url":"./", "scope":"./", "display":"standalone",
+  "background_color":"#101510", "theme_color":"#101510",
+  "description":"離線也能進行的日文回想、讀音與文法練習。",
+  "icons":[
+    {"src":"./icon-192.png","sizes":"192x192","type":"image/png","purpose":"any maskable"},
+    {"src":"./icon-512.png","sizes":"512x512","type":"image/png","purpose":"any maskable"}
+  ]
+}
