@@ -24,13 +24,19 @@
   document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')sync();});
   setInterval(sync,30000);
   document.addEventListener('DOMContentLoaded',sync);
-  // Keep controls above the software keyboard without locking text zoom.
+  // visualViewport measures only the visible area above the software keyboard.
   const viewport=window.visualViewport;
+  let baseline=window.innerHeight;
   function resize(){
-    const keyboard=viewport&&window.innerHeight-viewport.height>150;
+    const focused=document.activeElement?.id==='answer-input';
+    if(!focused)baseline=window.innerHeight;
+    const height=viewport?.height||window.innerHeight;
+    const keyboard=focused&&Math.max(baseline,window.innerHeight)-height>100;
     document.body.classList.toggle('keyboard-open',!!keyboard);
-    document.documentElement.style.setProperty('--quiz-height',(viewport?.height||window.innerHeight)+'px');
-    document.documentElement.style.setProperty('--visible-height',(viewport?.height||window.innerHeight)+'px');
+    document.documentElement.style.setProperty('--quiz-height',height+'px');
+    document.documentElement.style.setProperty('--quiz-top',(viewport?.offsetTop||0)+'px');
   }
-  viewport?.addEventListener('resize',resize);window.addEventListener('resize',resize);resize();
+  viewport?.addEventListener('resize',resize);viewport?.addEventListener('scroll',resize);
+  window.addEventListener('resize',resize);document.addEventListener('focusin',resize);
+  document.addEventListener('focusout',()=>requestAnimationFrame(resize));resize();
 })();

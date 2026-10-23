@@ -33,6 +33,32 @@ body.quiz-mode{height:var(--quiz-height,100dvh);overflow:hidden;overscroll-behav
 @media(max-width:600px){.quiz-mode .app-header{padding:8px 16px}.quiz-mode .header-progress{width:110px}.quiz-mode main{padding:10px 14px max(12px,env(safe-area-inset-bottom))}.quiz-layout{grid-template-rows:26px 5px minmax(64px,1fr) 100px minmax(86px,145px) 80px;gap:9px}.quiz-question{padding:10px 14px}.quiz-translation{font-size:14px}.quiz-layout .sentence{font-size:23px}.quiz-help{padding:10px 14px;font-size:13px}.quiz-top .tag{font-size:10px}.quiz-controls .button{padding:10px 8px;min-height:44px}.quiz-mode .answer-input{scroll-margin:0}.quiz-mode.keyboard-open .app-header{display:none}.quiz-mode.keyboard-open .quiz-layout{grid-template-rows:22px 4px minmax(45px,1fr) 86px 76px 68px;gap:5px}.quiz-mode.keyboard-open main{padding:5px 10px}.quiz-mode.keyboard-open .quiz-question{padding:5px 10px}.quiz-mode.keyboard-open .quiz-translation{font-size:12px;margin:2px 0}.quiz-mode.keyboard-open .quiz-layout .sentence{font-size:19px;line-height:1.65;margin:2px 0}.quiz-mode.keyboard-open .quiz-question .eyebrow{display:none}.quiz-mode.keyboard-open .quiz-help{padding:7px 12px;font-size:12px}.quiz-mode.keyboard-open .quiz-help .answer{font-size:18px}.quiz-mode.keyboard-open .answer-input{height:44px;min-height:44px;font-size:20px!important}.quiz-mode.keyboard-open .quiz-controls .button{min-height:40px;padding:7px}.quiz-mode.keyboard-open .question-illustration{display:none}}
 
 .quiz-layout .progress-track span{background:#FFB36B}.xp-track i{background:#1FB5B0}.quiz-question{border-top:4px solid #FFB36B}.quiz-help:not(.is-feedback) .eyebrow{color:#885020}
+
+/* Compact, fixed slots. The single action retains its position in all hint states. */
+.quiz-layout{grid-template-rows:28px 6px minmax(64px,1fr) 94px minmax(80px,150px) 46px}
+.quiz-layout .sentence{font-size:23px;line-height:1.9}.quiz-translation{font-size:15px}
+.quiz-answer .answer-input{font-size:18px!important;height:46px;min-height:46px}
+.quiz-help{font-size:13px}.quiz-help .answer{font-size:19px}.quiz-controls{grid-template-columns:1fr}
+.quiz-help .learned-note{font-size:11px;color:var(--green)}
+@media(max-width:600px){
+ body.quiz-mode{position:fixed;top:var(--quiz-top,0px);left:0;right:0;width:100%;height:var(--quiz-height,100dvh)}
+ .quiz-mode .app-header{display:none}
+ .quiz-mode main,.quiz-mode.keyboard-open main{padding:8px 12px max(8px,env(safe-area-inset-bottom))}
+ .quiz-mode .quiz-layout,.quiz-mode.keyboard-open .quiz-layout{grid-template-rows:24px 4px minmax(44px,1.25fr) 82px minmax(50px,1fr) 44px;gap:5px;max-height:none}
+ .quiz-mode .quiz-question,.quiz-mode.keyboard-open .quiz-question{padding:6px 10px;align-content:center}
+ .quiz-mode .quiz-question .eyebrow{display:none}
+ .quiz-mode .quiz-translation,.quiz-mode.keyboard-open .quiz-translation{font-size:12px;line-height:1.4;margin:2px 0}
+ .quiz-mode .quiz-layout .sentence,.quiz-mode.keyboard-open .quiz-layout .sentence{font-size:18px;line-height:1.9;margin:3px 0}
+ .quiz-mode .sentence rt{font-size:9px}.quiz-mode .blank{min-width:48px;padding:0 4px}
+ .quiz-mode .answer-label{font-size:11px;line-height:16px;margin:0 0 3px}
+ .quiz-mode .answer-input,.quiz-mode.keyboard-open .answer-input{font-size:16px!important;line-height:22px;height:42px;min-height:42px;padding:8px 10px;scroll-margin:0}
+ .quiz-mode .answer-status{font-size:11px;line-height:16px;min-height:16px;margin:3px 0}
+ .quiz-mode .quiz-help,.quiz-mode.keyboard-open .quiz-help{padding:7px 10px;font-size:12px;line-height:1.5}
+ .quiz-mode .quiz-help .answer,.quiz-mode.keyboard-open .quiz-help .answer{font-size:17px;line-height:1.4;margin:3px 0}
+ .quiz-mode .quiz-help p{margin:3px 0}.quiz-mode .quiz-help .eyebrow{font-size:10px}
+ .quiz-mode .quiz-controls .button,.quiz-mode.keyboard-open .quiz-controls .button{height:44px;min-height:44px;padding:8px;font-size:14px}
+ .quiz-mode .question-illustration{display:none}
+}
 </style>
 
 </head>
@@ -383,7 +409,21 @@ function render(){
   if(!state.data)return;header();
   document.querySelectorAll('[data-page]').forEach(b=>{b.classList.toggle('active',b.dataset.page===state.page||(state.page==='quiz'&&b.dataset.page==='home'));b.setAttribute('aria-current',b.classList.contains('active')?'page':'false');});
   const view={home:homeView,words:wordsView,stats:statsView,settings:settingsView,quiz:quizView,summary:summaryView}[state.page]||homeView;
-  $('main').innerHTML=view();
+  const markup=view(),existing=$('main').querySelector?.('.quiz-layout');
+  if(state.page==='quiz'&&existing&&document.createRange){
+    // Keep the actual form and input mounted: replacing a focused input dismisses mobile keyboards.
+    const replacement=document.createRange().createContextualFragment(markup).querySelector('.quiz-layout');
+    const form=existing.querySelector('.quiz-answer'),nextForm=replacement.querySelector('.quiz-answer');
+    for(const selector of ['.quiz-top','.progress-track','.quiz-question','.quiz-help','.quiz-controls'])existing.querySelector(selector).replaceWith(replacement.querySelector(selector));
+    form.querySelector('label').textContent=nextForm.querySelector('label').textContent;
+    const input=form.querySelector('input'),source=nextForm.querySelector('input');
+    input.className=source.className;input.placeholder=source.placeholder;
+    input.setAttribute('enterkeyhint',source.getAttribute('enterkeyhint'));
+    input.setAttribute('aria-busy',source.getAttribute('aria-busy'));
+    input.value=source.value;
+    form.querySelector('.answer-status').textContent=nextForm.querySelector('.answer-status').textContent;
+    form.querySelector('.answer-status').className=nextForm.querySelector('.answer-status').className;
+  }else $('main').innerHTML=markup;
   document.body.classList.toggle('quiz-mode',state.page==='quiz');if(state.page==='quiz'&&state.feedback&&state.keepKeyboard)$('answer-input')?.focus({preventScroll:true});
   if(state.page==='quiz'&&!state.feedback){const input=$('answer-input');if(input){input.value=state.draft.answer||'';if(window.innerWidth>600||state.keepKeyboard)input.focus({preventScroll:true});}}
 }
@@ -422,13 +462,12 @@ function quizView(){
     <p class="quiz-translation">${esc(reading?'請輸入這個單字的假名。':listening?'聽完整句子，填入：'+q.meaning:q.translation.replace(/\*\*/g,''))}</p>
     <div class="sentence">${reading?esc(q.answer):listening&&!feedback?'<span class="listening-symbol">♫</span>':sentenceHtml(q.sentence,!feedback)}</div>${listening&&!feedback?button('無法播放？改用文字練習','text-fallback','ghost small'):''}${q.assistedAudio?'<small>已切換文字練習，記為提示</small>':''}${illustrationHtml(q)}</section>
     <form id="answer-form" class="quiz-answer"><label class="answer-label" for="answer-input">${feedback?'你的答案':reading?'輸入假名':'輸入日文（漢字或假名）'}</label>
-    <input id="answer-input" class="answer-input ${feedback?.correct?'correct':''}" type="text" lang="ja" autocomplete="off" spellcheck="false" enterkeyhint="${feedback?'next':'done'}" placeholder="${feedback?'已記錄，按下一步繼續':'在這裡輸入答案…'}" value="${esc(feedback?state.submittedAnswer||'':state.draft.answer||'')}" ${feedback||state.draft.pending?'readonly':''}>
+    <input id="answer-input" class="answer-input ${feedback?.correct?'correct':''}" type="text" lang="ja" autocomplete="off" spellcheck="false" enterkeyhint="${feedback?'next':'done'}" placeholder="${feedback?'已記錄，按下一步繼續':'在這裡輸入答案…'}" value="${esc(feedback?state.submittedAnswer||'':state.draft.answer||'')}" aria-busy="${!!state.draft.pending}">
     <div id="answer-status" class="answer-status" role="status">${feedback?'已儲存這次作答':state.draft.pending?'正在儲存…':'答對會自動送出，不限修改次數。'}</div></form>
     <section class="quiz-help ${feedback?'is-feedback':''}" aria-live="polite">
-      ${feedback?`<div class="feedback-title"><strong>${feedback.correct?'✓ 答對了！':'這題先記起來'}</strong><span>${feedback.xp?'+'+feedback.xp+' XP':'重練完成'}</span></div><p class="answer">${esc(feedback.answer)} <small>（${esc(feedback.reading)}）</small></p><p>${esc(feedback.explanation)}</p><p class="muted">${esc(q.translation.replace(/\*\*/g,''))}</p>`:hints?`<div class="eyebrow">提示 ${hints} / 2</div><p>讀音開頭是「<strong>${esc(Array.from(q.reading)[0])}</strong>」。</p>${hints===2?'<p class="muted">已朗讀完整句子，試著回想答案。</p>':''}`:'<p class="muted">先試著回想。需要幫忙時，這裡會顯示提示與解答。</p>'}
+      ${feedback?`<div class="feedback-title"><strong>${feedback.correct?'✓ 答對了！':'這題先記起來'}</strong><span>${feedback.xp?'+'+feedback.xp+' XP':'重練完成'}</span></div>${feedback.knownInitially?'<p class="learned-note">已加入已學習，不再自動複習。</p>':''}<p class="answer">${esc(feedback.answer)} <small>（${esc(feedback.reading)}）</small></p><p>${esc(feedback.explanation)}</p><p class="muted">${esc(q.translation.replace(/\*\*/g,''))}</p>`:hints?`<div class="eyebrow">提示 ${hints} / 2</div><p>讀音開頭是「<strong>${esc(Array.from(q.reading)[0])}</strong>」。</p>${hints===2?'<p class="muted">已朗讀完整句子，試著回想答案。</p>':''}`:'<p class="muted">先試著回想。需要幫忙時，這裡會顯示提示與解答。</p>'}
     </section>
-    <div class="quiz-controls">${feedback?button(feedback.completed?'查看成果 →':'下一題 →','next','full'):button(hints===0?'提示 1 · 首個假名':hints===1?'提示 2 · 朗讀整句':'提示已用完','hint','secondary',hints>=2||state.draft.pending?'disabled':'')+button('看解答','reveal','ghost',state.draft.pending?'disabled':'')}
-    <small>${feedback?feedback.knownInitially?'首次零提示答對 · 已加入已學習，不再自動複習':'答對後自動朗讀完整句子':hints?'提示後答對 +5 XP':'無提示答對 +10 XP'}</small></div>
+    <div class="quiz-controls">${feedback?button(feedback.completed?'查看成果 →':'下一題 →','next','full'):button(hints===0?'提示 1 · 首個假名':hints===1?'提示 2 · 朗讀整句':'看解答',hints>=2?'reveal':'hint','secondary full',state.draft.pending?'disabled':'')}</div>
   </div>`;
 }
 async function start(kind){await task(async()=>{const s=await api('startSession',kind||'daily');if(!s.total){notify('目前沒有符合條件的題目。可以換個主題，或等到複習時間再回來。');return;}state.session=s;state.data.active=s;state.feedback=null;state.page='quiz';loadDraft();render();if(s.queue[s.index]?.mode==='listening')speak(speechText(s.queue[s.index].sentence));if(state.draft.pending){notify('找到尚未確認的作答，正在恢復。');setTimeout(()=>submitPending(),0);}});}
@@ -467,6 +506,7 @@ async function checkLiveAnswer(){
 async function hint(){
   if(state.busy||state.draft.pending||state.feedback||state.composing||(state.draft.hints||0)>=2)return;
   const q=state.session.queue[state.session.index];
+  state.keepKeyboard=window.innerWidth<=600&&document.activeElement===$('answer-input')||state.keepKeyboard;
   state.draft.answer=$('answer-input')?.value??state.draft.answer??'';
   state.draft.hints=Math.min(2,(state.draft.hints||0)+1);
   if(state.draft.hints===2)state.draft.assistedAudio=true;
@@ -487,7 +527,7 @@ async function submitAnswer(){
     state.draft.answer=value;saveDraft();answerStatus(near||(value.trim()?'還沒答對，可以繼續修改。':'可以不限次修改，答對會自動送出。'),'near');return;
   }
   if(!state.draft.pending){state.draft.answer=value;state.draft.pending={eventId:uid(),questionId:q.id,answer:value,hints:state.draft.hints||0,revealed:abandoned,autoHint:!!state.draft.autoHint,assistedAudio:!!state.draft.assistedAudio};saveDraft();}
-  const input=$('answer-input');if(input){input.readOnly=true;state.keepKeyboard=true;}answerStatus('正在儲存…','correct');await submitPending();
+  const input=$('answer-input');if(input){state.keepKeyboard=true;input.setAttribute('aria-busy','true');}answerStatus('正在儲存…','correct');await submitPending();
 }
 async function submitPending(){await task(async()=>{const q=state.session.queue[state.session.index];const submittedAnswer=state.draft.pending.answer;const result=await api('answerQuestion',state.session.id,state.draft.pending);state.submittedAnswer=submittedAnswer;state.answeredQuestion=q;state.feedback=result.feedback;state.session=result.session;state.data=result.dashboard;state.draft={};saveDraft();render();if(result.feedback.correct)speak(speechText(q.sentence));if(window.innerWidth>600)document.querySelector('[data-action="next"]')?.focus();},submitPending);}
 function next(){window.speechSynthesis?.cancel();state.feedback=null;if(state.session.completedAt){state.page='summary';}else{loadDraft();state.page='quiz';}render();if(state.page==='quiz'&&state.session.queue[state.session.index]?.mode==='listening')speak(speechText(state.session.queue[state.session.index].sentence));}
@@ -524,11 +564,15 @@ document.addEventListener('click',e=>{const nav=e.target.closest('[data-page]');
   const action=b.dataset.action;if(action==='reveal'){revealAnswer();return;}if(action==='cloud-logout'){task(()=>window.epopCloud.logout());return;}if(action==='backup-export'){exportBackup();return;}if(action==='backup-choose'){$('backup-file').click();return;}if(action==='backup-restore'){restoreBackup();return;}if(action==='sync-now'){window.epopOffline?.sync(learnerId);return;}if(['home','words','stats','settings','summary'].includes(action)){go(action);return;}
   if(action==='start')start(b.dataset.kind);else if(action==='hint')hint();else if(action==='next')next();else if(action==='audio')audio();else if(action==='text-fallback')textFallback();else if(action==='calendar')calendar();else if(action==='import')task(async()=>{state.data=await api('importLegacyProgress');render();notify('舊版進度已匯入，原本的工作表完整保留。');});
 });
+document.addEventListener('pointerdown',e=>{
+  const action=e.target.closest?.('[data-action]')?.dataset.action;
+  if(state.page==='quiz'&&['hint','reveal','next'].includes(action)&&document.activeElement===$('answer-input')){state.keepKeyboard=true;e.preventDefault();}
+});
 document.addEventListener('submit',e=>{if(e.target.id==='answer-form'){e.preventDefault();if(!state.composing){if(state.feedback)next();else submitAnswer();}}if(e.target.id==='settings-form'){e.preventDefault();saveSettings();}});
 document.addEventListener('compositionstart',e=>{if(e.target.id==='answer-input'){state.composing=true;clearTimeout(state.liveHintTimer);}});
 document.addEventListener('compositionend',e=>{if(e.target.id!=='answer-input')return;setTimeout(()=>{state.composing=false;if(state.page==='quiz'&&$('answer-input')===e.target)checkLiveAnswer();},0);});
 document.addEventListener('keydown',e=>{if(e.target.id==='next-input'&&e.key==='Enter'&&!e.isComposing){e.preventDefault();if(!state.busy)next();return;}if(e.target.id==='answer-input'&&e.key==='Enter'&&(e.isComposing||state.composing||e.keyCode===229)){e.preventDefault();}});
-document.addEventListener('input',e=>{if(e.target.id==='word-search'){state.search=e.target.value;$('word-results').innerHTML=wordRows();}if(e.target.id==='answer-input'&&!state.feedback){state.draft.answer=e.target.value;saveDraft();if(!e.isComposing&&!state.composing)return checkLiveAnswer();}});
+document.addEventListener('input',e=>{if(e.target.id==='word-search'){state.search=e.target.value;$('word-results').innerHTML=wordRows();}if(e.target.id==='answer-input'&&!state.feedback&&!state.draft.pending){state.draft.answer=e.target.value;saveDraft();if(!e.isComposing&&!state.composing)return checkLiveAnswer();}});
 document.addEventListener('DOMContentLoaded',()=>{$('retry-button').onclick=()=>state.retry?.();document.querySelector('.brand').onclick=e=>{e.preventDefault();go('home');};if(window.previewApi&&!window.EPOP_PWA)$('preview-banner').hidden=false;if(!state.storage)notify('瀏覽器阻擋儲存，關閉頁面後可能無法取回此學習檔案。');task(async()=>{if(window.epopCloud&&!await window.epopCloud.init())return;state.data=await api('getDashboard');render();});});
 </script>
 
