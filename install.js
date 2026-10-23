@@ -29,6 +29,7 @@
   function resize(){
     const keyboard=viewport&&window.innerHeight-viewport.height>150;
     document.body.classList.toggle('keyboard-open',!!keyboard);
+    document.documentElement.style.setProperty('--quiz-height',(viewport?.height||window.innerHeight)+'px');
     document.documentElement.style.setProperty('--visible-height',(viewport?.height||window.innerHeight)+'px');
   }
   viewport?.addEventListener('resize',resize);window.addEventListener('resize',resize);resize();
