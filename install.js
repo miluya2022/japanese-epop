@@ -1,29 +1,36 @@
-/* Install/update lifecycle: updates never reload an active exercise automatically. */
+/* Show updates on reopen; never reload an active exercise without consent. */
 (function(){
-  let installPrompt=null,waitingWorker=null;
-  const byId=id=>document.getElementById(id);
-  window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();installPrompt=e;byId('install-app').hidden=false;});
-  window.addEventListener('appinstalled',()=>{installPrompt=null;byId('install-app').hidden=true;});
-  byId('install-app').addEventListener('click',async()=>{if(!installPrompt)return;await installPrompt.prompt();await installPrompt.userChoice;installPrompt=null;});
-  byId('update-app').addEventListener('click',()=>{
-    if(typeof state!=='undefined'&&(state.busy||state.page==='quiz')){notify('請先暫停練習回首頁，再更新；進度會保留。');return;}
+  let installPrompt=null,registration=null,waitingWorker=null,replacing=false,dismissed=false;
+  const dialog=document.getElementById('app-update-dialog');
+  function offer(){
+    waitingWorker=registration?.waiting||null;
+    if(!waitingWorker||!navigator.serviceWorker.controller||dismissed||document.visibilityState==='hidden')return;
+    if(typeof state!=='undefined'&&(state.busy||state.page==='quiz'))return;
+    if(!dialog.open)dialog.showModal();
+  }
+  async function check(){
+    if(!registration)return;
+    try{await registration.update();offer();if(!registration.waiting&&!registration.installing)notify('目前已是最新版本。');}catch(e){notify('無法檢查更新，請確認網路後重試。');}
+  }
+  window.epopUpdates={offer,check,async install(){if(installPrompt){await installPrompt.prompt();await installPrompt.userChoice;installPrompt=null;}else notify('請使用瀏覽器選單「加入主畫面」安裝。');}};
+  window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();installPrompt=e;});
+  window.addEventListener('appinstalled',()=>{installPrompt=null;});
+  document.getElementById('update-later').onclick=()=>{dismissed=true;dialog.close();};
+  dialog.addEventListener('cancel',()=>{dismissed=true;});
+  document.getElementById('update-now').onclick=()=>{
+    if(typeof state!=='undefined'&&(state.busy||state.page==='quiz')){dialog.close();notify('請先暫停練習再更新。');return;}
     waitingWorker?.postMessage({type:'ACTIVATE_UPDATE'});
-  });
+  };
   if('serviceWorker' in navigator&&window.isSecureContext){
-    let replacing=false;
     navigator.serviceWorker.register('./sw.js').then(reg=>{
-      function offer(){waitingWorker=navigator.serviceWorker.controller?reg.waiting:null;byId('update-app').hidden=!waitingWorker;}
-      offer();reg.addEventListener('updatefound',()=>reg.installing?.addEventListener('statechange',offer));
-      navigator.serviceWorker.addEventListener('controllerchange',()=>{if(waitingWorker&&!replacing){replacing=true;location.reload();}});
-      navigator.serviceWorker.ready.then(()=>{byId('offline-ready').textContent=window.epopCloud?'介面已快取 · 學習需要連線':'介面與題庫已下載，可離線學習';});
-    }).catch(()=>{byId('offline-ready').textContent='離線快取尚未成功，可重開頁面再試';});
-  }else byId('offline-ready').textContent='安裝與離線開啟需使用 HTTPS 或 localhost';
-  const sync=()=>{if(typeof learnerId!=='undefined')window.epopOffline?.sync(learnerId);};
-  window.addEventListener('online',sync);
-  window.addEventListener('offline',()=>{byId('sync-status').textContent=window.epopCloud?'已離線 · 請恢復連線後再作答':'離線 · 進度已存裝置';});
-  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')sync();});
-  setInterval(sync,30000);
-  document.addEventListener('DOMContentLoaded',sync);
+      registration=reg;offer();
+      reg.addEventListener('updatefound',()=>reg.installing?.addEventListener('statechange',()=>{if(reg.waiting)offer();}));
+      reg.update().catch(()=>{});
+    }).catch(()=>{});
+    navigator.serviceWorker.addEventListener('controllerchange',()=>{if(waitingWorker&&!replacing){replacing=true;location.reload();}});
+  }
+  const reopen=()=>{if(document.visibilityState==='visible'){dismissed=false;registration?.update().catch(()=>{});offer();}};
+  window.addEventListener('pageshow',reopen);document.addEventListener('visibilitychange',reopen);
   // visualViewport measures only the visible area above the software keyboard.
   const viewport=window.visualViewport;
   let baseline=window.innerHeight;
