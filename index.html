@@ -122,18 +122,24 @@ var Learning = (function () {
       stability: 0, difficulty: 0, lastReview: 0, reps: 0, lapses: 0, lastRating: 0};
   }
   // Records saved before FSRS keep their due date; stability starts from the old interval.
+  // Words once marked as known on first sight are scheduled as an Easy first review on that day.
   function migrate(record) {
     var p = Object.assign(progress(), record || {});
-    if (p.seen && !p.knownInitially && !p.stability && p.rep !== undefined) {
+    if (p.knownInitially) {
+      p.stability = W[RATING.easy - 1]; p.difficulty = initDifficulty(RATING.easy); p.lastRating = RATING.easy;
+      p.lastReview = p.lastPracticedAt || (p.lastDay ? Date.parse(p.lastDay + 'T12:00:00+08:00') : 0);
+      p.due = p.lastReview + intervalDays(p.stability) * DAY;
+      p.reps = Math.max(1, p.reps || 0);
+    } else if (p.seen && !p.stability && p.rep !== undefined) {
       p.stability = Math.max(0.5, Number(p.interval) || 0.5);
       p.difficulty = p.lastFailed ? 7 : initDifficulty(RATING.good);
       p.lastReview = p.lastPracticedAt || Math.max(0, (p.due || 0) - p.stability * DAY);
       p.reps = p.rep || 0;
     }
-    delete p.rep; delete p.interval; delete p.lastSuccessDay;
+    delete p.rep; delete p.interval; delete p.lastSuccessDay; delete p.knownInitially;
     return p;
   }
-  function status(p) { return !p || !p.seen ? 'new' : p.knownInitially ? 'known' : p.lastFailed ? 'weak' : 'learning'; }
+  function status(p) { return !p || !p.seen ? 'new' : p.lastFailed ? 'weak' : 'learning'; }
 
   function clamp(d) { return Math.min(10, Math.max(1, d)); }
   function initDifficulty(g) { return clamp(W[4] - Math.exp(W[5] * (g - 1)) + 1); }
@@ -156,8 +162,12 @@ var Learning = (function () {
     if (!p.stability) {
       p.stability = W[g - 1]; p.difficulty = initDifficulty(g);
     } else if (day(p.lastReview) === day(now)) {
-      // Same-day repeats cannot extend the schedule; forgetting again still shortens it.
-      if (g !== RATING.again) return;
+      // Same-day repeats cannot extend the schedule; forgetting again still shortens it,
+      // and relearning a word forgotten today moves its next review to tomorrow.
+      if (g !== RATING.again) {
+        if (p.due <= now) p.due = startOfDay(now) + DAY;
+        return;
+      }
       p.stability = Math.min(p.stability, p.stability * Math.exp(W[17] * (g - 3 + W[18])));
       p.difficulty = nextDifficulty(p.difficulty, g);
     } else {
@@ -190,7 +200,6 @@ var Learning = (function () {
     return words.filter(function (w) {
       var p = records[w.id];
       // Due reviews remain available regardless of a newly selected level/topic.
-      if (p && p.knownInitially && kind !== 'favorites') return false;
       if (kind === 'review') return p && p.seen && p.due <= now;
       if (kind === 'weak') return p && p.lastFailed;
       if (kind === 'favorites') return p && p.favorite;
@@ -308,7 +317,6 @@ var Learning = (function () {
   function review(records, profile, wordId, mode, correct, helped, g, now, session) {
     var p = migrate(records[wordId]);
     p.modes = Object.assign({}, p.modes);
-    var knewOnFirstEncounter = !p.seen && correct && !helped;
     if (session && p.seen && p.lastDay && p.lastDay !== day(now)) {
       session.reviewTotal = (session.reviewTotal || 0) + 1;
       if (correct && !helped) session.reviewCorrect = (session.reviewCorrect || 0) + 1;
@@ -321,12 +329,8 @@ var Learning = (function () {
     p.modes[mode] = m;
     if (correct && !helped) { p.correct++; if (!sameDay) p.lastFailed = false; }
     else p.lastFailed = true;
-    // Known means zero hints; wrong edits and automatic near-miss reminders do not count.
-    if (knewOnFirstEncounter) { p.knownInitially = true; p.due = 0; }
-    else {
-      if (helped || !correct) p.knownInitially = false;
-      if (!p.knownInitially) schedule(p, g, now);
-    }
+    // A first answer without hints is an Easy review; wrong edits and automatic reminders are not hints.
+    schedule(p, g, now);
     var today = day(now), yesterday = day(now - DAY);
     profile.streak = profile.lastDay === today ? (profile.streak || 1) : profile.lastDay === yesterday ? (profile.streak || 0) + 1 : 1;
     profile.lastDay = today; profile.days = profile.days || [];
@@ -362,7 +366,7 @@ var Learning = (function () {
     q.answered = true;
     var result = {correct: correct, helped: helped, xp: xp, rating: g, answer: q.answer, reading: q.reading,
       explanation: q.explanation, mode: q.mode, retry: (!correct || helped) && q.round < 2,
-      nextReview: p.due, knownInitially: !!p.knownInitially, first: first};
+      nextReview: p.due, first: first};
     q.feedback = result;
     session.index++;
     if (session.index >= session.queue.length) session.completedAt = now;
@@ -393,7 +397,6 @@ var Learning = (function () {
   // Estimated average reviews per day over the next 30 days with the given settings.
   function forecast(words, records, input, now) {
     var s = settings(input), n = slots(s, 'daily'), base = startOfDay(now), counts = 0, end = base + FORECAST_DAYS * DAY;
-    var seen = 0, known = 0;
     function simulate(due, stability, difficulty, weight) {
       var guard = 0;
       while (due < end && guard++ < 200) {
@@ -406,17 +409,14 @@ var Learning = (function () {
     words.forEach(function(w) {
       var p = records[w.id];
       if (!p || !p.seen) return;
-      seen++;
-      if (p.knownInitially) { known++; return; }
       var m = migrate(p);
       simulate(m.due || now, m.stability || W[RATING.good - 1], m.difficulty || initDifficulty(RATING.good), 1);
     });
-    var knownRate = seen >= 20 ? known / seen : 0.2;
     var remaining = candidates(words, records, s, 'daily', now).filter(function(w) { return !(records[w.id] || {}).seen; }).length;
     for (var d = 0; d < FORECAST_DAYS && remaining > 0; d++) {
       var added = Math.min(n.fresh, remaining); remaining -= added;
       var stability = W[RATING.good - 1];
-      simulate(base + d * DAY + intervalDays(stability) * DAY, stability, initDifficulty(RATING.good), added * (1 - knownRate));
+      simulate(base + d * DAY + intervalDays(stability) * DAY, stability, initDifficulty(RATING.good), added);
     }
     // Roughly one in ten reviews is forgotten and returns the next day.
     var average = Math.round(counts * (1 + (1 - RETENTION)) / FORECAST_DAYS * 10) / 10;
@@ -424,11 +424,11 @@ var Learning = (function () {
   }
   function dashboard(words, records, profile, sessions, now) {
     profile.settings = settings(profile.settings);
-    var today = day(now), counts = {new: 0, learning: 0, weak: 0, known: 0}, due = 0, overdue = 0, next = 0, favorites = 0;
+    var today = day(now), counts = {new: 0, learning: 0, weak: 0}, due = 0, overdue = 0, next = 0, favorites = 0;
     words.forEach(function(w) {
       var p = records[w.id]; counts[status(p)]++;
       if (p && p.favorite) favorites++;
-      if (p && p.seen && !p.knownInitially) {
+      if (p && p.seen) {
         if (p.due <= now) { due++; if (day(p.due) < today) overdue++; }
         else if (!next || p.due < next) next = p.due;
       }
@@ -447,7 +447,7 @@ var Learning = (function () {
       var m = modes[mode] || {seen: 0, correct: 0}, a = records[id].modes[mode]; m.seen += a.seen; m.correct += a.correct; modes[mode] = m;
     });});
     var streak = [today, day(now-DAY)].indexOf(profile.lastDay) >= 0 ? (profile.streak || 0) : 0;
-    var studied = counts.learning + counts.weak + counts.known;
+    var studied = counts.learning + counts.weak;
     var badges = [
       {name: '踏出第一步', icon: '🌱', unlocked: completed.length >= 1, detail: '完成第一輪學習'},
       {name: '三日同行', icon: '🔥', unlocked: streak >= 3, detail: '連續完成學習 3 天'},
@@ -744,7 +744,7 @@ var Learning = (function () {
 'use strict';
 const $ = (id) => document.getElementById(id);
 const esc = (value) => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const labels = {recall:'句子回想',reading:'漢字讀音',listening:'聽力填空',usage:'助詞・活用',mixed:'適性混合',new:'未學習',learning:'熟悉中',weak:'待加強',known:'已學習'};
+const labels = {recall:'句子回想',reading:'漢字讀音',listening:'聽力填空',usage:'助詞・活用',mixed:'適性混合',new:'未學習',learning:'熟悉中',weak:'待加強'};
 const topics = {all:'全部主題',daily:'日常生活',travel:'日本旅行',food:'飲食點餐',grammar:'助詞與活用'};
 const state = {page:'home',data:null,session:null,feedback:null,answeredQuestion:null,busy:false,filter:'all',search:'',retry:null,draft:{},storage:true};
 function uid() {return window.crypto?.randomUUID ? crypto.randomUUID() : 'learner_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2)+Math.random().toString(36).slice(2);}
@@ -798,7 +798,7 @@ function homeView(){const d=state.data,s=d.profile.settings,active=d.active,done
   <p class="muted">${active?`已完成 ${active.index} 次作答，包含錯題重練。`:d.due?`目前有 ${d.due} 題到期複習${d.overdue?`（其中 ${d.overdue} 題已逾期）`:''}，會優先安排。`:d.available?'目前沒有到期複習，這輪以新字為主。':'目前沒有可安排的題目，可以練錯題、收藏，或換個程度。'}</p>
   ${progress(d.todayCount/s.goal*100)}<div class="between"><small>今日已完成 ${d.todayCount}／${s.goal} 題</small><span class="tag green">${done?'今日目標達成':'每題立即累積'}</span></div>
   <div class="actions">${button(active?'繼續練習 →':done?'再練一輪 →':'開始今日學習 →','start','','data-kind="daily" '+(!active&&!d.available?'disabled':''))}${active?button('開新練習','start-new','secondary','data-kind="daily" '+(!d.available?'disabled':'')):''}${button('調整計畫','settings','ghost')}${d.due?button('只複習 5 題','start','ghost','data-kind="review"'):''}</div></section>
-  <div class="grid"><div class="tile"><small>到期複習</small><strong class="number-green">${d.due}</strong><small>${d.overdue?'其中逾期 '+d.overdue+' 題':'優先鞏固記憶'}</small></div><div class="tile"><small>待加強</small><strong>${d.counts.weak}</strong><small>提示或錯題紀錄</small></div><div class="tile"><small>已學習單字</small><strong>${d.counts.learning+d.counts.weak+d.counts.known}</strong><small>練習過的單字</small></div></div>
+  <div class="grid"><div class="tile"><small>到期複習</small><strong class="number-green">${d.due}</strong><small>${d.overdue?'其中逾期 '+d.overdue+' 題':'優先鞏固記憶'}</small></div><div class="tile"><small>待加強</small><strong>${d.counts.weak}</strong><small>提示或錯題紀錄</small></div><div class="tile"><small>已學習單字</small><strong>${d.counts.learning+d.counts.weak}</strong><small>練習過的單字</small></div></div>
   <div class="grid two"><section class="panel"><h3>↻ 把忘記的，再記回來</h3><p class="muted">錯題與提示題有自己的練習入口。</p>${button('重練待加強 '+d.counts.weak+' 題','start','secondary','data-kind="weak" '+(!d.counts.weak&&!active?'disabled':''))}</section><section class="panel"><h3>☆ 你的專屬單字本</h3><p class="muted">收藏真正想用的詞，讓學習貼近生活。</p>${button('練習收藏 '+d.favorites+' 題','start','secondary','data-kind="favorites" '+(!d.favorites&&!active?'disabled':''))}</section></div>
   <section class="panel"><div class="between"><h3>下次回來，已經安排好了</h3><span class="tag">台北時間</span></div><p class="muted">${d.due?`還有 ${d.due} 題可以複習。`:d.nextReview?`下一批複習：${when(d.nextReview)}。`:'完成第一輪，就會有你的複習安排。'}你的每日提醒時間是 ${esc(s.reminder)}。</p><button class="text-link" data-action="calendar">下載每日提醒到行事曆 ↗</button><p class="note">下載後需在行事曆中匯入，並確認通知設定。</p></section>`;
 }
@@ -830,7 +830,7 @@ function quizView(){
     <input id="answer-input" class="answer-input ${feedback?.correct?'correct':''}" type="text" lang="ja" autocomplete="off" spellcheck="false" enterkeyhint="${feedback?'next':'done'}" placeholder="${feedback?'已記錄，按下一步繼續':'在這裡輸入答案…'}" value="${esc(feedback?state.submittedAnswer||'':state.draft.answer||'')}" aria-busy="${!!state.draft.pending}">
     <div id="answer-status" class="answer-status" role="status">${feedback?'已儲存這次作答':state.draft.pending?'正在儲存…':'答對會自動送出，不限修改次數。'}</div></form>
     <section class="quiz-help ${feedback?'is-feedback':''}" aria-live="polite">
-      ${feedback?`<div class="feedback-title"><strong>${feedback.correct?'✓ 答對了！':'這題先記起來'}</strong><span>${feedback.xp?'+'+feedback.xp+' XP':'重練完成'}</span></div>${feedback.knownInitially?'<p class="learned-note">已加入已學習，不再自動複習。</p>':''}<p class="answer">${esc(feedback.answer)} <small>（${esc(feedback.reading)}）</small></p><p>${esc(feedback.explanation)}</p><p class="muted">${zhHtml(q.translation)}</p>${reportHtml(q)}`:hints?`<div class="eyebrow">提示 ${hints} / 2</div><p>讀音開頭是「<strong>${esc(Array.from(q.reading)[0])}</strong>」。</p>${hints===2?'<p class="muted">已朗讀完整句子，試著回想答案。</p>':''}`:'<p class="muted">先試著回想。需要幫忙時，這裡會顯示提示與解答。</p>'}
+      ${feedback?`<div class="feedback-title"><strong>${feedback.correct?'✓ 答對了！':'這題先記起來'}</strong><span>${feedback.xp?'+'+feedback.xp+' XP':'重練完成'}</span></div>${feedback.first&&feedback.nextReview>Date.now()?`<p class="learned-note">下次複習：${when(feedback.nextReview)}</p>`:''}<p class="answer">${esc(feedback.answer)} <small>（${esc(feedback.reading)}）</small></p><p>${esc(feedback.explanation)}</p><p class="muted">${zhHtml(q.translation)}</p>${reportHtml(q)}`:hints?`<div class="eyebrow">提示 ${hints} / 2</div><p>讀音開頭是「<strong>${esc(Array.from(q.reading)[0])}</strong>」。</p>${hints===2?'<p class="muted">已朗讀完整句子，試著回想答案。</p>':''}`:'<p class="muted">先試著回想。需要幫忙時，這裡會顯示提示與解答。</p>'}
     </section>
     <div class="quiz-controls">${feedback?button(feedback.completed?'查看成果 →':'下一題 →','next','full'):button(hints===0?'提示 1 · 首個假名':hints===1?'提示 2 · 朗讀整句':'看解答',hints>=2?'reveal':'hint','secondary full',state.draft.pending?'disabled':'')}</div>
   </div>`;
@@ -906,8 +906,8 @@ function summaryView(){const s=state.session;if(!s)return '<div class="empty">�
   <div class="grid"><div class="tile"><small>無提示完成</small><strong class="number-green">${s.firstCorrect}／${scoredTotal}</strong><small>${Object.keys(s.results).length?Math.round(s.firstCorrect/Object.keys(s.results).length*100):0}% 正確率</small></div><div class="tile"><small>本輪新學</small><strong>${s.closedAt?(s.answeredFresh??(s.queue||[]).filter(q=>q.round===0&&q.wasNew&&q.answered).length):s.fresh}</strong><small>個新內容</small></div><div class="tile"><small>獲得經驗</small><strong>+${s.xp}</strong><small>XP</small></div></div>
   <section class="panel"><p>無提示完成 ${s.firstCorrect} 題 · 提示後完成 ${s.assisted} 題 · 揭露答案 ${s.mistakes} 題</p><h3>${weak.length?'這幾個，再給它們一點時間。':'這輪都能獨立回答，很好！'}</h3>${weak.length?`<ul class="mini-list">${weak.map(w=>`<li>${esc(w.word)}（${esc(w.reading)}）<span class="tag">${esc(labels[w.mode])}</span></li>`).join('')}</ul><p class="muted">重練成功也會保留本輪原始紀錄；隔一段時間再答對，才代表記憶更穩定。</p>`:'<p class="muted">系統已安排間隔複習，下次會換個句子確認記憶。</p>'}</section>
   <section class="hero" style="margin-top:18px"><h2>你的下一步</h2><p class="muted">${state.data.due?'還有 '+state.data.due+' 題到期複習。':state.data.nextReview?'下一批複習在 '+when(state.data.nextReview)+'。':'可以更換主題，繼續探索。'}${state.data.available?'目前另有 '+state.data.available+' 題可安排。':''}</p><div class="actions">${button('完成今天，回首頁','home','')}${button('再練待加強','start','secondary','data-kind="weak" '+(!state.data.counts.weak?'disabled':''))}</div></section><p class="note">本頁是這一輪的成果，不代表全部題庫都已完成。每天完成一題就留下學習足跡；同日重練同字不重複計入目標。</p>`;}
-function wordsView(){return `<div class="eyebrow">YOUR WORD COLLECTION</div><h1>一個字，一個新可能。</h1><p class="muted">${state.data.words.length} 個內容 · 收藏 ${state.data.favorites} 個</p><label class="answer-label" for="word-search">搜尋日文、假名或中文</label><input id="word-search" type="search" placeholder="搜尋單字、讀音或意思…" value="${esc(state.search)}"><div class="filter-row">${[['all','全部'],['favorites','☆ 收藏'],['weak','待加強'],['learning','熟悉中'],['new','未學習'],['known','已學習單字']].map(([k,v])=>`<button data-filter="${k}" class="${state.filter===k?'active':''}">${v}</button>`).join('')}</div><div class="panel" id="word-results">${wordRows()}</div>`;}
-function wordRows(){const needle=state.search.trim().toLowerCase();const list=state.data.words.filter(w=>(state.filter==='all'||(state.filter==='favorites'?w.progress.favorite:w.status===state.filter))&&(!needle||[w.word,w.kana,w.meaning].some(t=>t.toLowerCase().includes(needle))));return list.length?list.map(w=>`<article class="word-row"><div><div class="between"><h3>${esc(w.word)}</h3><span class="tag ${w.status==='weak'?'amber':w.status==='known'?'green':''}">${labels[w.status]}</span></div><div class="kana">${esc(w.kana)}</div><p>${esc(w.meaning)}</p><small>${esc(w.level)} · ${esc(topics[w.topic]||w.topic)}${w.progress.knownInitially?' · 已知，不排入自動複習':w.progress.seen?' · 下次 '+when(w.progress.due):''}</small></div><div class="word-actions"><button class="icon-button ${w.progress.favorite?'selected':''}" data-favorite="${esc(w.id)}" aria-label="${w.progress.favorite?'取消收藏':'收藏'}${esc(w.word)}" aria-pressed="${w.progress.favorite}">${w.progress.favorite?'★':'☆'}</button><button class="icon-button" data-speak="${esc(w.id)}" aria-label="播放${esc(w.word)}的讀音">▶</button></div></article>`).join(''):'<div class="empty">沒有符合的內容，試試其他關鍵字或分類。</div>';}
+function wordsView(){return `<div class="eyebrow">YOUR WORD COLLECTION</div><h1>一個字，一個新可能。</h1><p class="muted">${state.data.words.length} 個內容 · 收藏 ${state.data.favorites} 個</p><label class="answer-label" for="word-search">搜尋日文、假名或中文</label><input id="word-search" type="search" placeholder="搜尋單字、讀音或意思…" value="${esc(state.search)}"><div class="filter-row">${[['all','全部'],['favorites','☆ 收藏'],['weak','待加強'],['learning','熟悉中'],['new','未學習']].map(([k,v])=>`<button data-filter="${k}" class="${state.filter===k?'active':''}">${v}</button>`).join('')}</div><div class="panel" id="word-results">${wordRows()}</div>`;}
+function wordRows(){const needle=state.search.trim().toLowerCase();const list=state.data.words.filter(w=>(state.filter==='all'||(state.filter==='favorites'?w.progress.favorite:w.status===state.filter))&&(!needle||[w.word,w.kana,w.meaning].some(t=>t.toLowerCase().includes(needle))));return list.length?list.map(w=>`<article class="word-row"><div><div class="between"><h3>${esc(w.word)}</h3><span class="tag ${w.status==='weak'?'amber':w.status==='learning'?'green':''}">${labels[w.status]}</span></div><div class="kana">${esc(w.kana)}</div><p>${esc(w.meaning)}</p><small>${esc(w.level)} · ${esc(topics[w.topic]||w.topic)}${w.progress.seen?' · 下次 '+when(w.progress.due):''}</small></div><div class="word-actions"><button class="icon-button ${w.progress.favorite?'selected':''}" data-favorite="${esc(w.id)}" aria-label="${w.progress.favorite?'取消收藏':'收藏'}${esc(w.word)}" aria-pressed="${w.progress.favorite}">${w.progress.favorite?'★':'☆'}</button><button class="icon-button" data-speak="${esc(w.id)}" aria-label="播放${esc(w.word)}的讀音">▶</button></div></article>`).join(''):'<div class="empty">沒有符合的內容，試試其他關鍵字或分類。</div>';}
 function statsView(){const d=state.data,days=d.profile.days||[],week=Array.from({length:7},(_,i)=>day(Date.now()-(6-i)*86400000));return `<div class="eyebrow">PROGRESS THAT MEANS SOMETHING</div><h1>看見自己，慢慢變強。</h1><p class="muted">經驗值記錄投入，無提示回想記錄學習表現。</p><div class="grid"><div class="tile"><small>累積經驗值</small><strong>${d.profile.xp}</strong><small>XP</small></div><div class="tile"><small>無提示完成率</small><strong class="number-green">${d.accuracy===null?'—':d.accuracy+'%'}</strong><small>包含進行中的練習</small></div><div class="tile"><small>累積學習日</small><strong>${days.length}</strong><small>連續 ${d.streak} 天</small></div></div><section class="panel"><h3>隔天以後，還記得多少？</h3><p><strong style="font-size:28px;color:var(--green)">${d.reviewAccuracy===null?'—':d.reviewAccuracy+'%'}</strong> <span class="muted">跨日無提示回想率</span></p><p class="note">共 ${d.reviewTotal} 次跨日複習。當天反覆練習不計入，每題完成後更新。</p></section><section class="panel" style="margin-top:18px"><h3>最近七天的足跡 · ${week.filter(k=>days.includes(k)).length}／7 天</h3><div class="week">${week.map(dayKey=>`<div class="day ${days.includes(dayKey)?'done':''}">${dayKey.slice(5)}<span>${days.includes(dayKey)?'✓':'·'}</span></div>`).join('')}</div></section>
   <div class="section-label"><h2>每一種能力，都分開看</h2></div><div class="panel">${['recall','reading','listening','usage'].map(mode=>{const m=d.modes[mode]||{seen:0,correct:0};return `<div style="margin-bottom:18px"><div class="between"><span>${labels[mode]}</span><small>${m.seen?`${m.correct}／${m.seen} 次無提示完成`:'還沒有紀錄'}</small></div>${progress(m.seen?m.correct/m.seen*100:0)}</div>`;}).join('')}<p class="note">無提示完成允許修改答案，並不表示一次輸入就答對。提示後完成與揭露答案會分開記錄。這些數字不等同 JLPT 程度測驗。</p></div>
   <div class="section-label"><h2>記憶狀態</h2></div><div class="panel">${Object.entries(d.counts).map(([k,v])=>`<div class="between"><span>${labels[k]}</span><span>${v} 個</span></div>${progress(v/d.words.length*100)}`).join('')}<p class="note">學過但忘記會保留在「待加強」，不會變回未學習。複習間隔由 FSRS 依每個字的記憶狀況安排，記得越牢，間隔越長。</p></div>
