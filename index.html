@@ -190,7 +190,8 @@ var Learning = (function () {
   // Example sentences: [{jp, zh}]; older rows supply sentence_jp plus one variant.
   function examples(word) {
     var list = Array.isArray(word.examples) && word.examples.length ? word.examples.map(function (e) {
-      return {jp: e.jp || e.sentence_jp || '', zh: e.zh || e.sentence_zh || ''};
+      // form names the conjugation used in the blank (e.g. て形), so the learner knows what to type.
+      return {jp: e.jp || e.sentence_jp || '', zh: e.zh || e.sentence_zh || '', form: e.form || ''};
     }) : [{jp: word.sentence_jp, zh: word.sentence_zh}].concat((word.variants || []).map(function (v) {
       return {jp: v, zh: word.variant_zh || word.sentence_zh};
     }));
@@ -239,7 +240,7 @@ var Learning = (function () {
     var match = example.jp.match(/\{([^|}]+)\|([^}]+)\}/);
     return {id: word.id + ':' + index + ':0', wordId: word.id, word: word.word, kana: word.kana,
       image_url: word.image_url || '', image_alt: word.image_alt || '', hint: word.hint || '',
-      meaning: word.meaning, sentence: example.jp, translation: example.zh || '', sentenceIndex: sentenceIndex,
+      meaning: word.meaning, sentence: example.jp, translation: example.zh || '', form: example.form || '', sentenceIndex: sentenceIndex,
       explanation: word.explanation || ('這個句子使用「' + word.word + '」，意思是「' + word.meaning + '」。'),
       mode: mode, answer: match ? match[1] : word.word, reading: match ? match[2] : word.kana, overdue: !!pick.overdue,
       aliases: word.aliases || [], round: 0, wasNew: !p.seen, hints: 0, revealed: false, assistedAudio: false, answered: false};
@@ -825,7 +826,7 @@ function quizView(){
     ${progress(done/session.total*100)}
     <section class="quiz-question"><div class="eyebrow">${reading?'READ THE WORD':listening?'LISTEN & RECALL':'RECALL IN CONTEXT'}</div>
     <p class="quiz-translation">${reading?'請輸入這個單字的假名。':listening?esc('聽完整句子，填入：'+q.meaning):zhHtml(q.translation)}</p>
-    <div class="sentence">${reading?esc(q.answer):listening&&!feedback?'<span class="listening-symbol">♫</span>':sentenceHtml(q.sentence,!feedback)}</div>${listening&&!feedback?button('無法播放？改用文字練習','text-fallback','ghost small'):''}${q.assistedAudio?'<small>已切換文字練習，記為提示</small>':''}${q.hint?`<p class="word-hint"><span>提示</span>${esc(q.hint)}</p>`:''}${illustrationHtml(q)}</section>
+    <div class="sentence">${reading?esc(q.answer):listening&&!feedback?'<span class="listening-symbol">♫</span>':sentenceHtml(q.sentence,!feedback)}</div>${listening&&!feedback?button('無法播放？改用文字練習','text-fallback','ghost small'):''}${q.assistedAudio?'<small>已切換文字練習，記為提示</small>':''}${q.hint?`<p class="word-hint"><span>提示</span>${esc(q.hint)}</p>`:''}${q.form?`<p class="word-hint"><span>變化</span>${esc(q.form)}</p>`:''}${illustrationHtml(q)}</section>
     <form id="answer-form" class="quiz-answer"><label class="answer-label" for="answer-input">${feedback?'你的答案':reading?'輸入假名':'輸入日文（漢字或假名）'}</label>
     <input id="answer-input" class="answer-input ${feedback?.correct?'correct':''}" type="text" lang="ja" autocomplete="off" spellcheck="false" enterkeyhint="${feedback?'next':'done'}" placeholder="${feedback?'已記錄，按下一步繼續':'在這裡輸入答案…'}" value="${esc(feedback?state.submittedAnswer||'':state.draft.answer||'')}" aria-busy="${!!state.draft.pending}">
     <div id="answer-status" class="answer-status" role="status">${feedback?'已儲存這次作答':state.draft.pending?'正在儲存…':'答對會自動送出，不限修改次數。'}</div></form>
