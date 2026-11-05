@@ -1,4 +1,4 @@
-const CACHE='epop-1ac32210f6d334';
+const CACHE='epop-836bffb6554b5d';
 const ASSETS=['./','./index.html','./manifest.webmanifest','./install.js','./supabase.js','./icon-192.png','./icon-512.png','./logo.svg'];
 self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS))));
 self.addEventListener('activate',event=>event.waitUntil((async()=>{
