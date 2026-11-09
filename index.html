@@ -341,13 +341,44 @@ var Learning = (function () {
     records[wordId] = p;
     return {xp: xp, progress: p};
   }
+  // Every way the blank may be typed: each kanji run in its kanji, its reading, or its leading
+  // kanji followed by the rest in kana (見直→見直／みなお／見なお), with the kana parts as given.
+  function spellings(answer, reading) {
+    var parts = String(answer).split(/([\u3400-\u9fff々〆ヵヶ]+)/), kana = normalize(reading);
+    if (parts.length < 3) return [normalize(answer)];
+    var pattern = parts.map(function (p, i) { return i % 2 ? '(.+?)' : normalize(p).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }).join('');
+    var m = kana.match(new RegExp('^' + pattern + '$'));
+    if (!m) return [normalize(answer), kana];
+    var out = [''];
+    parts.forEach(function (p, i) {
+      var opts = [];
+      if (i % 2) {
+        var r = m[(i + 1) / 2], chars = Array.from(p);
+        opts.push(p, r);
+        // A kanji is read with one to three kana, which bounds where the kana part may start.
+        for (var k = 1; k < chars.length; k++) for (var j = k; j <= 3 * k && j < r.length; j++) {
+          var rest = r.length - j;
+          if (rest >= chars.length - k && rest <= 3 * (chars.length - k)) opts.push(chars.slice(0, k).join('') + r.slice(j));
+        }
+      } else opts.push(normalize(p));
+      var next = [];
+      out.forEach(function (o) { opts.forEach(function (x) { if (next.length < 512) next.push(o + x); }); });
+      out = next;
+    });
+    return out.map(normalize);
+  }
+  function acceptedAnswers(q) {
+    var list = q.mode === 'reading' ? [normalize(q.reading)].concat((q.aliases || []).filter(function (a) { return /^[\u3040-\u30ff]+$/.test(a); }).map(normalize))
+      : spellings(q.answer, q.reading).concat([normalize(q.reading)], (q.aliases || []).map(normalize));
+    return list.filter(function (a, i) { return a && list.indexOf(a) === i; });
+  }
   function answer(session, records, profile, input, now) {
     if (session.events && session.events[input.eventId]) return session.events[input.eventId];
     var q = session.queue && session.queue[session.index];
     if (!q || q.id !== input.questionId || q.answered || (session.completedAt || session.closedAt)) throw new Error('題目已更新，請重新載入繼續學習。');
-    var user = normalize(input.answer), answers = q.mode === 'reading' ? [q.reading].concat(q.aliases.filter(function(a) {return /^[぀-ヿ]+$/.test(a);})) : [q.answer, q.reading].concat(q.aliases);
+    var user = normalize(input.answer), answers = acceptedAnswers(q);
     var abandoned = Number(input.hints) >= 3;
-    var correct = !abandoned && answers.some(function(a) {return normalize(a) === user;});
+    var correct = !abandoned && answers.indexOf(user) >= 0;
     if (!correct && !abandoned) throw new Error('答案尚未正確，可以繼續修改；第三次提示才會放棄作答。');
     var helped = !!input.hints || abandoned || !!input.assistedAudio || !!q.assistedAudio;
     var g = rating({hints: input.hints, assistedAudio: input.assistedAudio || q.assistedAudio}, abandoned);
@@ -539,7 +570,7 @@ var Learning = (function () {
     }).forEach(function(event) { apply(state, words, Object.assign({}, event, {merged: true})); });
     return state;
   }
-  return {textFallback: textFallback, normalize: normalize, day: day, defaults: defaults, settings: settings, progress: progress, status: status,
+  return {textFallback: textFallback, normalize: normalize, acceptedAnswers: acceptedAnswers, day: day, defaults: defaults, settings: settings, progress: progress, status: status,
     candidates: candidates, openNew: openNew, start: start, answer: answer, dashboard: dashboard, forecast: forecast, examples: examples,
     summarize: summarize, migrate: migrate, compact: compact, apply: apply, replay: replay, emptyState: emptyState, RATING: RATING,
     fsrs: {schedule: schedule, intervalDays: intervalDays, retrievability: retrievability}};
@@ -827,7 +858,7 @@ function quizView(){
     <section class="quiz-question"><div class="eyebrow">${reading?'READ THE WORD':listening?'LISTEN & RECALL':'RECALL IN CONTEXT'}</div>
     <p class="quiz-translation">${reading?'請輸入這個單字的假名。':listening?esc('聽完整句子，填入：'+q.meaning):zhHtml(q.translation)}</p>
     <div class="sentence">${reading?esc(q.answer):listening&&!feedback?'<span class="listening-symbol">♫</span>':sentenceHtml(q.sentence,!feedback)}</div>${listening&&!feedback?button('無法播放？改用文字練習','text-fallback','ghost small'):''}${q.assistedAudio?'<small>已切換文字練習，記為提示</small>':''}${q.hint?`<p class="word-hint"><span>提示</span>${esc(q.hint)}</p>`:''}${q.form?`<p class="word-hint"><span>變化</span>${esc(q.form)}</p>`:''}${illustrationHtml(q)}</section>
-    <form id="answer-form" class="quiz-answer"><label class="answer-label" for="answer-input">${feedback?'你的答案':reading?'輸入假名':'輸入日文（漢字或假名）'}</label>
+    <form id="answer-form" class="quiz-answer"><label class="answer-label" for="answer-input">${feedback?'你的答案':reading?'輸入假名':'輸入日文（漢字、假名或混用）'}</label>
     <input id="answer-input" class="answer-input ${feedback?.correct?'correct':''}" type="text" lang="ja" autocomplete="off" spellcheck="false" enterkeyhint="${feedback?'next':'done'}" placeholder="${feedback?'已記錄，按下一步繼續':'在這裡輸入答案…'}" value="${esc(feedback?state.submittedAnswer||'':state.draft.answer||'')}" aria-busy="${!!state.draft.pending}">
     <div id="answer-status" class="answer-status" role="status">${feedback?'已儲存這次作答':state.draft.pending?'正在儲存…':'答對會自動送出，不限修改次數。'}</div></form>
     <section class="quiz-help ${feedback?'is-feedback':''}" aria-live="polite">
@@ -844,7 +875,7 @@ function reportHtml(q){
 async function sendReport(){const q=state.answeredQuestion;if(!q)return;const report={word_id:q.wordId,word:q.word,sentence:q.sentence,translation:q.translation,category:$('report-category').value,note:$('report-note').value.trim().slice(0,1000)};await task(async()=>{await api('reportProblem',report);state.reporting=false;state.reportedId=q.id;render();notify('已收到回報，連線時會送到雲端。');});}
 async function start(kind,newRound=false){const requestId=uid();await task(async()=>{const s=await api(newRound?'startNewSession':'startSession',kind||'daily',requestId);if(!s.total){notify('目前沒有符合條件的題目。可以換個主題，或等到複習時間再回來。');return;}state.session=s;state.data.active=s;state.feedback=null;state.page='quiz';loadDraft();render();if(s.queue[s.index]?.mode==='listening')speak(speechText(s.queue[s.index].sentence));if(state.draft.pending){notify('找到尚未確認的作答，正在恢復。');setTimeout(()=>submitPending(),0);}});}
 function normalizeAnswer(value){return String(value||'').normalize('NFKC').replace(/[\u30a1-\u30f6]/g,c=>String.fromCharCode(c.charCodeAt(0)-0x60)).replace(/[\s\u3000]/g,'').toLowerCase();}
-function acceptedAnswers(q){return [...new Set((q.mode==='reading'?[q.reading].concat((q.aliases||[]).filter(a=>/^[\u3040-\u30ff]+$/.test(a))):[q.answer,q.reading].concat(q.aliases||[])).map(normalizeAnswer))];}
+function acceptedAnswers(q){return Learning.acceptedAnswers(q);}
 function closeAnswerHint(value,answers){
   const input=Array.from(normalizeAnswer(value));if(!input.length)return '';
   for(const answer of answers){
