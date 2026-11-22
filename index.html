@@ -66,6 +66,10 @@ dialog{max-width:420px;width:calc(100% - 36px);border:1px solid var(--line);bord
 .warning-panel{border:1px solid var(--amber);background:#fff1dc;color:var(--ink);border-radius:16px;padding:14px 18px;margin:0 0 18px}.warning-panel strong{color:var(--amber)}.warning-panel p{margin:6px 0 0;font-size:14px}
 .report-link{margin-top:6px;font-size:13px}.report-form{margin-top:10px;display:grid;gap:6px}.report-form select,.report-form textarea{width:100%;border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:var(--panel);color:var(--ink);font:inherit;font-size:14px}.report-form .actions{margin-top:4px}
 </style>
+<style>
+/* Correct-answer feedback */
+.quiz-count{display:inline-flex;align-items:center;gap:8px}.combo{font-weight:700;color:#b5560f;background:#FFE3C4;border-radius:20px;padding:1px 9px;font-size:12px;animation:combo-bump .35s ease-out}.combo.milestone{background:#FFB36B;color:#4a2a0e;animation:combo-big .6s ease-out}@keyframes combo-bump{0%{transform:scale(.85)}60%{transform:scale(1.12)}100%{transform:scale(1)}}@keyframes combo-big{0%{transform:scale(.7) rotate(-6deg)}50%{transform:scale(1.3) rotate(4deg)}100%{transform:scale(1) rotate(0)}}.answer-input.correct{border-color:#1FB5B0!important;background:#e6f7f4!important;animation:answer-glow .7s ease-out}@keyframes answer-glow{0%{box-shadow:0 0 0 0 #1FB5B099}70%{box-shadow:0 0 0 12px #1FB5B000}100%{box-shadow:0 0 0 0 #1FB5B000}}.feedback-title.win strong{display:inline-block;transform-origin:left center;animation:praise-pop .45s cubic-bezier(.2,1.6,.4,1)}@keyframes praise-pop{0%{transform:scale(.6);opacity:.2}100%{transform:scale(1);opacity:1}}.xp-pop{font-weight:700;animation:xp-rise .6s ease-out}@keyframes xp-rise{0%{transform:translateY(8px);opacity:0}100%{transform:translateY(0);opacity:1}}.mastered-badge{display:inline-block;margin:4px 0;padding:3px 10px;border-radius:20px;background:#FFE3C4;color:#7a4510;font-weight:700;animation:praise-pop .5s cubic-bezier(.2,1.6,.4,1)}.summary-wins{display:flex;flex-wrap:wrap;gap:6px 18px;justify-content:center;color:#0E5C63}.summary-wins b{font-size:18px}.check-field label{display:flex;align-items:center;gap:8px}.check-field input{width:20px;height:20px;min-height:0;accent-color:#0E5C63}.confetti{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:50}@media(prefers-reduced-motion:reduce){.combo,.combo.milestone,.answer-input.correct,.feedback-title.win strong,.xp-pop,.mastered-badge{animation:none!important}}
+</style>
 
 </head>
 <body>
@@ -140,6 +144,9 @@ var Learning = (function () {
     return p;
   }
   function status(p) { return !p || !p.seen ? 'new' : p.lastFailed ? 'weak' : 'learning'; }
+  // A word is mastered once its memory lasts three weeks and the latest answer needed no help.
+  var MASTERED_DAYS = 21;
+  function mastered(p) { return !!(p && p.seen && !p.lastFailed && p.stability >= MASTERED_DAYS); }
 
   function clamp(d) { return Math.min(10, Math.max(1, d)); }
   function initDifficulty(g) { return clamp(W[4] - Math.exp(W[5] * (g - 1)) + 1); }
@@ -383,11 +390,16 @@ var Learning = (function () {
     var helped = !!input.hints || abandoned || !!input.assistedAudio || !!q.assistedAudio;
     var g = rating({hints: input.hints, assistedAudio: input.assistedAudio || q.assistedAudio}, abandoned);
     var xp = 0, first = q.round === 0, p = records[q.wordId] || progress();
+    var before = records[q.wordId], wasMastered = mastered(before);
+    var lastSeen = before && before.seen ? (before.lastReview || before.lastPracticedAt || 0) : 0;
+    var clean = correct && !helped, levelUp = false;
     if (first) {
       var applied = review(records, profile, q.wordId, q.mode, correct, helped, g, now, session);
       xp = applied.xp; p = applied.progress; session.xp += xp;
       if (correct && !helped) session.firstCorrect++;
       else if (correct) session.assisted++; else session.mistakes++;
+      levelUp = clean && !wasMastered && mastered(p);
+      if (levelUp) session.masteredNow = (session.masteredNow || []).concat([q.word]);
       session.results[q.wordId] = {word: q.word, reading: q.reading, correct: correct && !helped, mode: q.mode, rating: g, outcome: abandoned ? 'revealed' : helped ? 'assisted' : 'unassisted', answeredAt: now};
     }
     // A repeat keeps the same sentence, but cannot overwrite the first result or award XP twice.
@@ -396,7 +408,11 @@ var Learning = (function () {
       session.queue.splice(Math.min(session.index + 6, session.queue.length), 0, retry);
     }
     q.answered = true;
+    session.combo = clean ? (session.combo || 0) + 1 : 0;
+    session.bestCombo = Math.max(session.bestCombo || 0, session.combo);
     var result = {correct: correct, helped: helped, xp: xp, rating: g, answer: q.answer, reading: q.reading,
+      combo: session.combo, wasNew: !!q.wasNew, round: q.round, mastered: levelUp,
+      gapDays: first && clean && lastSeen ? Math.floor((now - lastSeen) / DAY) : 0,
       explanation: q.explanation, mode: q.mode, retry: (!correct || helped) && q.round < 2,
       nextReview: p.due, first: first};
     q.feedback = result;
@@ -418,7 +434,7 @@ var Learning = (function () {
     var answeredFresh = (session.queue || []).filter(function(q) {return q.round === 0 && q.wasNew && q.answered;}).length;
     var out = {summary: true, answeredFresh: answeredFresh};
     ['id', 'kind', 'startedAt', 'completedAt', 'closedAt', 'closedReason', 'startRequestId', 'index', 'total', 'available', 'fresh',
-      'firstCorrect', 'assisted', 'mistakes', 'reviewTotal', 'reviewCorrect', 'xp', 'results'].forEach(function(k) {
+      'firstCorrect', 'assisted', 'mistakes', 'reviewTotal', 'reviewCorrect', 'xp', 'results', 'bestCombo', 'masteredNow'].forEach(function(k) {
       if (session[k] !== undefined) out[k] = session[k];
     });
     return out;
@@ -462,10 +478,11 @@ var Learning = (function () {
   }
   function dashboard(words, records, profile, sessions, now) {
     profile.settings = settings(profile.settings);
-    var today = day(now), counts = {new: 0, learning: 0, weak: 0}, due = 0, overdue = 0, next = 0, favorites = 0;
+    var today = day(now), counts = {new: 0, learning: 0, weak: 0}, due = 0, overdue = 0, next = 0, favorites = 0, masteredCount = 0;
     words.forEach(function(w) {
       var p = records[w.id]; counts[status(p)]++;
       if (p && p.favorite) favorites++;
+      if (mastered(p)) masteredCount++;
       if (p && p.seen) {
         if (p.due <= now) { due++; if (day(p.due) < today) overdue++; }
         else if (!next || p.due < next) next = p.due;
@@ -492,7 +509,7 @@ var Learning = (function () {
       {name: '單字收藏家', icon: '📚', unlocked: studied >= 50, detail: '累積學習 50 個單字'},
       {name: '百題練習家', icon: '⭐', unlocked: totalFirst >= 100, detail: '完成 100 道初次作答'},
       {name: '七日足跡', icon: '🏅', unlocked: (profile.days || []).length >= 7, detail: '累積 7 個學習日'}];
-    return {profile: profile, counts: counts, due: due, overdue: overdue, nextReview: next, favorites: favorites, streak: streak,
+    return {profile: profile, counts: counts, mastered: masteredCount, due: due, overdue: overdue, nextReview: next, favorites: favorites, streak: streak,
       active: active, recent: recent, badges: badges, modes: modes, todayCount: Object.keys(todayWords).length,
       accuracy: totalFirst ? Math.round(correctFirst/totalFirst*100) : null,
       reviewAccuracy: reviewTotal ? Math.round(reviewCorrect/reviewTotal*100) : null, reviewTotal: reviewTotal,
@@ -578,7 +595,7 @@ var Learning = (function () {
   }
   return {textFallback: textFallback, normalize: normalize, acceptedAnswers: acceptedAnswers, day: day, defaults: defaults, settings: settings, progress: progress, status: status,
     candidates: candidates, openNew: openNew, start: start, answer: answer, dashboard: dashboard, forecast: forecast, examples: examples,
-    summarize: summarize, completedWords: completedWords, migrate: migrate, compact: compact, apply: apply, replay: replay, emptyState: emptyState, RATING: RATING,
+    summarize: summarize, completedWords: completedWords, mastered: mastered, migrate: migrate, compact: compact, apply: apply, replay: replay, emptyState: emptyState, RATING: RATING,
     fsrs: {schedule: schedule, intervalDays: intervalDays, retrievability: retrievability}};
 })();
 
@@ -836,7 +853,7 @@ function homeView(){const d=state.data,s=d.profile.settings,active=d.active,done
   <p class="muted">${active?`已完成 ${active.index} 次作答，包含錯題重練。`:d.due?`目前有 ${d.due} 題到期複習${d.overdue?`（其中 ${d.overdue} 題已逾期）`:''}，會優先安排。`:d.available?'目前沒有到期複習，這輪以新字為主。':'目前沒有可安排的題目，可以練錯題、收藏，或換個程度。'}</p>
   ${progress(d.todayCount/s.goal*100)}<div class="between"><small>今日已完成 ${d.todayCount}／${s.goal} 題</small><span class="tag green">${done?'今日目標達成':'每題立即累積'}</span></div>
   <div class="actions">${button(active?'繼續練習 →':done?'再練一輪 →':'開始今日學習 →','start','','data-kind="daily" '+(!active&&!d.available?'disabled':''))}${active?button('開新練習','start-new','secondary','data-kind="daily" '+(!d.available?'disabled':'')):''}${button('調整計畫','settings','ghost')}${d.due?button('只複習 5 題','start','ghost','data-kind="review"'):''}</div></section>
-  <div class="grid"><div class="tile"><small>到期複習</small><strong class="number-green">${d.due}</strong><small>${d.overdue?'其中逾期 '+d.overdue+' 題':'優先鞏固記憶'}</small></div><div class="tile"><small>待加強</small><strong>${d.counts.weak}</strong><small>提示或錯題紀錄</small></div><div class="tile"><small>已學習單字</small><strong>${d.counts.learning+d.counts.weak}</strong><small>練習過的單字</small></div></div>
+  <div class="grid"><div class="tile"><small>到期複習</small><strong class="number-green">${d.due}</strong><small>${d.overdue?'其中逾期 '+d.overdue+' 題':'優先鞏固記憶'}</small></div><div class="tile"><small>待加強</small><strong>${d.counts.weak}</strong><small>提示或錯題紀錄</small></div><div class="tile"><small>已學習單字</small><strong>${d.counts.learning+d.counts.weak}</strong><small>${d.mastered?`其中 ⭐ 已熟記 ${d.mastered} 個`:'練習過的單字'}</small></div></div>
   <div class="grid two"><section class="panel"><h3>↻ 把忘記的，再記回來</h3><p class="muted">錯題與提示題有自己的練習入口。</p>${button('重練待加強 '+d.counts.weak+' 題','start','secondary','data-kind="weak" '+(!d.counts.weak&&!active?'disabled':''))}</section><section class="panel"><h3>☆ 你的專屬單字本</h3><p class="muted">收藏真正想用的詞，讓學習貼近生活。</p>${button('練習收藏 '+d.favorites+' 題','start','secondary','data-kind="favorites" '+(!d.favorites&&!active?'disabled':''))}</section></div>
   <section class="panel"><div class="between"><h3>下次回來，已經安排好了</h3><span class="tag">台北時間</span></div><p class="muted">${d.due?`還有 ${d.due} 題可以複習。`:d.nextReview?`下一批複習：${when(d.nextReview)}。`:'完成第一輪，就會有你的複習安排。'}你的每日提醒時間是 ${esc(s.reminder)}。</p><button class="text-link" data-action="calendar">下載每日提醒到行事曆 ↗</button><p class="note">下載後需在行事曆中匯入，並確認通知設定。</p></section>`;
 }
@@ -859,7 +876,7 @@ function quizView(){
   const feedback=state.feedback,reading=q.mode==='reading',listening=q.mode==='listening',hints=state.draft.hints||0;
   const done=Learning.completedWords(session);
   return `<div class="quiz-layout">
-    <div class="quiz-top"><button class="text-link" data-action="home">← 暫停練習</button><span class="tag ${q.overdue&&!q.round?'amber':''}">${q.round?'重練':q.overdue?'重新複習':q.wasNew?'新單字':'複習'} · ${esc(labels[q.mode])}</span><span>${done} / ${session.total}</span></div>
+    <div class="quiz-top"><button class="text-link" data-action="home">← 暫停練習</button><span class="tag ${q.overdue&&!q.round?'amber':''}">${q.round?'重練':q.overdue?'重新複習':q.wasNew?'新單字':'複習'} · ${esc(labels[q.mode])}</span><span class="quiz-count">${session.combo>=2?`<span class="combo ${comboMilestone(session.combo)?'milestone':''}" aria-label="連續答對 ${session.combo} 題">🔥 ${session.combo} 連對</span>`:''}${done} / ${session.total}</span></div>
     ${progress(done/session.total*100)}
     <section class="quiz-question"><div class="eyebrow">${reading?'READ THE WORD':listening?'LISTEN & RECALL':'RECALL IN CONTEXT'}</div>
     <p class="quiz-translation">${reading?'請輸入這個單字的假名。':listening?esc('聽完整句子，填入：'+q.meaning):zhHtml(q.translation)}</p>
@@ -868,7 +885,7 @@ function quizView(){
     <input id="answer-input" class="answer-input ${feedback?.correct?'correct':''}" type="text" lang="ja" autocomplete="off" spellcheck="false" enterkeyhint="${feedback?'next':'done'}" placeholder="${feedback?'已記錄，按下一步繼續':'在這裡輸入答案…'}" value="${esc(feedback?state.submittedAnswer||'':state.draft.answer||'')}" aria-busy="${!!state.draft.pending}">
     <div id="answer-status" class="answer-status" role="status">${feedback?'已儲存這次作答':state.draft.pending?'正在儲存…':'答對會自動送出，不限修改次數。'}</div></form>
     <section class="quiz-help ${feedback?'is-feedback':''}" aria-live="polite">
-      ${feedback?`<div class="feedback-title"><strong>${feedback.correct?'✓ 答對了！':'這題先記起來'}</strong><span>${feedback.xp?'+'+feedback.xp+' XP':'重練完成'}</span></div>${feedback.first&&feedback.nextReview>Date.now()?`<p class="learned-note">下次複習：${when(feedback.nextReview)}</p>`:''}<p class="answer">${esc(feedback.answer)} <small>（${esc(feedback.reading)}）</small></p><p>${esc(feedback.explanation)}</p><p class="muted">${zhHtml(q.translation)}</p>${reportHtml(q)}`:hints?`<div class="eyebrow">提示 ${hints} / 2</div><p>讀音開頭是「<strong>${esc(Array.from(q.reading)[0])}</strong>」。</p>${hints===2?'<p class="muted">已朗讀完整句子，試著回想答案。</p>':''}`:'<p class="muted">先試著回想。需要幫忙時，這裡會顯示提示與解答。</p>'}
+      ${feedback?`<div class="feedback-title ${state.praise?'win':''}"><strong>${state.praise?'✓ '+esc(state.praise.title):feedback.correct?'✓ 答對了':'這題先記起來'}</strong><span class="${state.praise&&feedback.xp?'xp-pop':''}">${feedback.xp?'+'+feedback.xp+' XP':'重練完成'}</span></div>${feedback.mastered?`<p class="mastered-badge">⭐ 這個字升級為已熟記</p>`:''}${state.praise?.next?`<p class="learned-note">${esc(state.praise.next)}</p>`:feedback.first&&feedback.nextReview>Date.now()?`<p class="learned-note">下次複習：${when(feedback.nextReview)}</p>`:''}<p class="answer">${esc(feedback.answer)} <small>（${esc(feedback.reading)}）</small></p><p>${esc(feedback.explanation)}</p><p class="muted">${zhHtml(q.translation)}</p>${reportHtml(q)}`:hints?`<div class="eyebrow">提示 ${hints} / 2</div><p>讀音開頭是「<strong>${esc(Array.from(q.reading)[0])}</strong>」。</p>${hints===2?'<p class="muted">已朗讀完整句子，試著回想答案。</p>':''}`:'<p class="muted">先試著回想。需要幫忙時，這裡會顯示提示與解答。</p>'}
     </section>
     <div class="quiz-controls">${feedback?button(feedback.completed?'查看成果 →':'下一題 →','next','full'):button(hints===0?'提示 1 · 首個假名':hints===1?'提示 2 · 朗讀整句':'看解答',hints>=2?'reveal':'hint','secondary full',state.draft.pending?'disabled':'')}</div>
   </div>`;
@@ -938,11 +955,11 @@ async function submitAnswer(){
   if(!state.draft.pending){state.draft.answer=value;state.draft.pending={eventId:uid(),questionId:q.id,answer:value,hints:state.draft.hints||0,revealed:abandoned,autoHint:!!state.draft.autoHint,assistedAudio:!!state.draft.assistedAudio};saveDraft();}
   const input=$('answer-input');if(input){state.keepKeyboard=true;input.setAttribute('aria-busy','true');}answerStatus('正在儲存…','correct');await submitPending();
 }
-async function submitPending(){await task(async()=>{const q=state.session.queue[state.session.index];const submittedAnswer=state.draft.pending.answer;const result=await api('answerQuestion',state.session.id,state.draft.pending);state.submittedAnswer=submittedAnswer;state.answeredQuestion=q;state.feedback=result.feedback;state.session=result.session;state.data=result.dashboard;state.draft={};saveDraft();render();speak(speechText(q.sentence));if(window.innerWidth>600)document.querySelector('[data-action="next"]')?.focus();},submitPending);}
-function next(){window.speechSynthesis?.cancel();state.feedback=null;state.reporting=false;if(state.session.completedAt){state.page='summary';}else{loadDraft();state.page='quiz';}render();if(state.page==='quiz'&&state.session.queue[state.session.index]?.mode==='listening')speak(speechText(state.session.queue[state.session.index].sentence));}
+async function submitPending(){await task(async()=>{const q=state.session.queue[state.session.index];const submittedAnswer=state.draft.pending.answer;const result=await api('answerQuestion',state.session.id,state.draft.pending);state.submittedAnswer=submittedAnswer;state.answeredQuestion=q;state.feedback=result.feedback;state.praise=praiseFor(result.feedback);state.session=result.session;state.data=result.dashboard;state.draft={};saveDraft();render();celebrate(result.feedback);const line=speechText(q.sentence);if(state.praise&&audioCtx&&soundOn())setTimeout(()=>speak(line),420);else speak(line);if(window.innerWidth>600)document.querySelector('[data-action="next"]')?.focus();},submitPending);}
+function next(){window.speechSynthesis?.cancel();state.feedback=null;state.praise=null;state.reporting=false;if(state.session.completedAt){state.page='summary';}else{loadDraft();state.page='quiz';}render();if(state.page==='summary'){chime('milestone');confetti();}if(state.page==='quiz'&&state.session.queue[state.session.index]?.mode==='listening')speak(speechText(state.session.queue[state.session.index].sentence));}
 function summaryView(){const s=state.session;if(!s)return '<div class="empty">完成一輪後就能看到成果。</div>';const scoredTotal=s.closedAt?Object.keys(s.results).length:s.total;const weak=Object.values(s.results).filter(r=>!r.correct);return `<div class="summary celebrate"><div class="summary-icon">✦</div><div class="eyebrow">A LITTLE BETTER, EVERY DAY</div><h1>${s.closedAt?'這一輪，已結束。':'這一輪，完成了。'}</h1><p class="muted">今天的每一次回想，都留下了紀錄。</p></div>
   <div class="grid"><div class="tile"><small>無提示完成</small><strong class="number-green">${s.firstCorrect}／${scoredTotal}</strong><small>${Object.keys(s.results).length?Math.round(s.firstCorrect/Object.keys(s.results).length*100):0}% 正確率</small></div><div class="tile"><small>本輪新學</small><strong>${s.closedAt?(s.answeredFresh??(s.queue||[]).filter(q=>q.round===0&&q.wasNew&&q.answered).length):s.fresh}</strong><small>個新內容</small></div><div class="tile"><small>獲得經驗</small><strong>+${s.xp}</strong><small>XP</small></div></div>
-  <section class="panel"><p>無提示完成 ${s.firstCorrect} 題 · 提示後完成 ${s.assisted} 題 · 揭露答案 ${s.mistakes} 題</p><h3>${weak.length?'這幾個，再給它們一點時間。':'這輪都能獨立回答，很好！'}</h3>${weak.length?`<ul class="mini-list">${weak.map(w=>`<li>${esc(w.word)}（${esc(w.reading)}）<span class="tag">${esc(labels[w.mode])}</span></li>`).join('')}</ul><p class="muted">重練成功也會保留本輪原始紀錄；隔一段時間再答對，才代表記憶更穩定。</p>`:'<p class="muted">系統已安排間隔複習，下次會換個句子確認記憶。</p>'}</section>
+  <section class="panel"><p>無提示完成 ${s.firstCorrect} 題 · 提示後完成 ${s.assisted} 題 · 揭露答案 ${s.mistakes} 題</p>${(s.bestCombo||0)>=2||(s.masteredNow||[]).length?`<p class="summary-wins">${(s.bestCombo||0)>=2?`<span>🔥 最多連對 <b>${s.bestCombo}</b> 題</span>`:''}${(s.masteredNow||[]).length?`<span>⭐ 升級為已熟記 <b>${s.masteredNow.length}</b> 個：${s.masteredNow.map(esc).join('、')}</span>`:''}</p>`:''}<h3>${weak.length?'這幾個，再給它們一點時間。':'這輪都能獨立回答，很好！'}</h3>${weak.length?`<ul class="mini-list">${weak.map(w=>`<li>${esc(w.word)}（${esc(w.reading)}）<span class="tag">${esc(labels[w.mode])}</span></li>`).join('')}</ul><p class="muted">重練成功也會保留本輪原始紀錄；隔一段時間再答對，才代表記憶更穩定。</p>`:'<p class="muted">系統已安排間隔複習，下次會換個句子確認記憶。</p>'}</section>
   <section class="hero" style="margin-top:18px"><h2>你的下一步</h2><p class="muted">${state.data.due?'還有 '+state.data.due+' 題到期複習。':state.data.nextReview?'下一批複習在 '+when(state.data.nextReview)+'。':'可以更換主題，繼續探索。'}${state.data.available?'目前另有 '+state.data.available+' 題可安排。':''}</p><div class="actions">${button('完成今天，回首頁','home','')}${button('再練待加強','start','secondary','data-kind="weak" '+(!state.data.counts.weak?'disabled':''))}</div></section><p class="note">本頁是這一輪的成果，不代表全部題庫都已完成。每天完成一題就留下學習足跡；同日重練同字不重複計入目標。</p>`;}
 function wordsView(){return `<div class="eyebrow">YOUR WORD COLLECTION</div><h1>一個字，一個新可能。</h1><p class="muted">${state.data.words.length} 個內容 · 收藏 ${state.data.favorites} 個</p><label class="answer-label" for="word-search">搜尋日文、假名或中文</label><input id="word-search" type="search" placeholder="搜尋單字、讀音或意思…" value="${esc(state.search)}"><div class="filter-row">${[['all','全部'],['favorites','☆ 收藏'],['weak','待加強'],['learning','熟悉中'],['new','未學習']].map(([k,v])=>`<button data-filter="${k}" class="${state.filter===k?'active':''}">${v}</button>`).join('')}</div><div class="panel" id="word-results">${wordRows()}</div>`;}
 function wordRows(){const needle=state.search.trim().toLowerCase();const list=state.data.words.filter(w=>(state.filter==='all'||(state.filter==='favorites'?w.progress.favorite:w.status===state.filter))&&(!needle||[w.word,w.kana,w.meaning].some(t=>t.toLowerCase().includes(needle))));return list.length?list.map(w=>`<article class="word-row"><div><div class="between"><h3>${esc(w.word)}</h3><span class="tag ${w.status==='weak'?'amber':w.status==='learning'?'green':''}">${labels[w.status]}</span></div><div class="kana">${esc(w.kana)}</div><p>${esc(w.meaning)}</p><small>${esc(w.level)} · ${esc(topics[w.topic]||w.topic)}${w.progress.seen?' · 下次 '+when(w.progress.due):''}</small></div><div class="word-actions"><button class="icon-button ${w.progress.favorite?'selected':''}" data-favorite="${esc(w.id)}" aria-label="${w.progress.favorite?'取消收藏':'收藏'}${esc(w.word)}" aria-pressed="${w.progress.favorite}">${w.progress.favorite?'★':'☆'}</button><button class="icon-button" data-speak="${esc(w.id)}" aria-label="播放${esc(w.word)}的讀音">▶</button></div></article>`).join(''):'<div class="empty">沒有符合的內容，試試其他關鍵字或分類。</div>';}
@@ -954,7 +971,7 @@ function statsView(){const d=state.data,days=d.profile.days||[],week=Array.from(
 function options(values,selected){return Object.entries(values).map(([v,label])=>`<option value="${esc(v)}" ${String(selected)===v?'selected':''}>${esc(label)}</option>`).join('');}
 function settingsView(){const s=state.data.profile.settings,ratios={};for(let r=0;r<=100;r+=10)ratios[r]=r+'%';return `<div class="eyebrow">MAKE IT YOURS</div><h1>找到適合你的節奏。</h1><p class="muted">設定會套用到下一輪；進行中的練習可以繼續完成。每輪先安排到期複習，其中約兩成是逾期的「重新複習」，剩下的名額才給新字。</p><form id="settings-form" class="panel"><div class="grid two"><div class="field"><label for="setting-goal">每天想完成幾題？</label><select id="setting-goal">${options({10:'10 題',20:'20 題',30:'30 題',40:'40 題'},s.goal)}</select></div><div class="field"><label for="setting-new-ratio">新字比例</label><select id="setting-new-ratio">${options(ratios,s.newRatio)}</select><small>例如 20 題、新字 30%，就是最多 6 個新字；複習不夠時，空位會補新字。</small></div><div class="field"><label for="setting-level">新字的程度</label><select id="setting-level">${options({N5:'N5 · 基礎日文',N4:'N4 · 進階基礎',N3:'N3 · 中級日文',N2:'N2 · 中高級日文',N1:'N1 · 高級日文',all:'不限程度'},s.level)}</select><small>到期複習不受程度篩選限制。</small></div><div class="field"><label for="setting-mode">練習方式</label><select id="setting-mode">${options({recall:'句子回想'},'recall')}</select></div></div><div id="forecast-warning">${forecastHtml(window.epopCloud?.forecast(s))}</div><div class="field"><label for="setting-reminder">每日提醒時間（台北時間）</label><input id="setting-reminder" type="time" value="${esc(s.reminder)}" required><small>儲存後可下載行事曆提醒。網頁本身不會在背景發送通知。</small></div><button class="button" type="submit">儲存我的學習計畫</button></form>
   <section class="panel" style="margin-top:20px"><h3>讓明天的自己記得回來</h3><p class="muted">將每天的練習放進行事曆，匯入後可自行調整通知。</p>${button('下載每日提醒 .ics','calendar','secondary')}</section>
-  <section class="panel" style="margin-top:20px"><h3>朗讀語音</h3><div class="field"><label for="setting-voice">日文語音（只套用在這台裝置）</label><select id="setting-voice">${voiceOptions()}</select><small>下載裝置的「增強版」或「高品質」日文語音後，會自動優先使用。沒看到新語音時，重新開啟 App。</small></div><div class="actions">${button('試聽','voice-test','secondary')}</div></section><section class="panel" style="margin-top:20px"><h3>版本與安裝</h3><div class="actions"><button data-action="install" class="button secondary">安裝到主畫面</button><button class="button ghost" data-action="check-update">檢查新版本</button></div></section><section class="panel" style="margin-top:20px"><h3>你的學習檔案</h3><p class="muted">已登入：${esc(window.epopCloud?.email()||'')}。作答會先存在這台裝置，連線時自動同步到雲端；離線也能練習，換裝置登入同一帳號即可接續。</p><p class="note">${esc(window.epopCloud?.status()||'')}</p><div class="actions">${button('立即同步','sync-now','secondary')}${button('登出帳號','cloud-logout','ghost')}</div></section><section class="panel" style="margin-top:20px"><h3>備份</h3><p class="muted">匯出包含學習進度、設定與所有作答紀錄。</p><div class="actions">${button('匯出進度 JSON','backup-export','secondary')}</div><p class="note">可加入主畫面；第一次開啟需要連線下載題庫，之後可離線練習。離線語音取決於裝置日文語音是否可用。</p></section>`;}
+  <section class="panel" style="margin-top:20px"><h3>朗讀語音</h3><div class="field"><label for="setting-voice">日文語音（只套用在這台裝置）</label><select id="setting-voice">${voiceOptions()}</select><small>下載裝置的「增強版」或「高品質」日文語音後，會自動優先使用。沒看到新語音時，重新開啟 App。</small></div><div class="actions">${button('試聽','voice-test','secondary')}</div><div class="field check-field"><label for="setting-sound"><input id="setting-sound" type="checkbox" ${soundOn()?'checked':''}> 答對時播放音效</label><small>只套用在這台裝置；手機在靜音模式時不會發出聲音。</small></div></section><section class="panel" style="margin-top:20px"><h3>版本與安裝</h3><div class="actions"><button data-action="install" class="button secondary">安裝到主畫面</button><button class="button ghost" data-action="check-update">檢查新版本</button></div></section><section class="panel" style="margin-top:20px"><h3>你的學習檔案</h3><p class="muted">已登入：${esc(window.epopCloud?.email()||'')}。作答會先存在這台裝置，連線時自動同步到雲端；離線也能練習，換裝置登入同一帳號即可接續。</p><p class="note">${esc(window.epopCloud?.status()||'')}</p><div class="actions">${button('立即同步','sync-now','secondary')}${button('登出帳號','cloud-logout','ghost')}</div></section><section class="panel" style="margin-top:20px"><h3>備份</h3><p class="muted">匯出包含學習進度、設定與所有作答紀錄。</p><div class="actions">${button('匯出進度 JSON','backup-export','secondary')}</div><p class="note">可加入主畫面；第一次開啟需要連線下載題庫，之後可離線練習。離線語音取決於裝置日文語音是否可用。</p></section>`;}
 
 async function saveSettings(){const settings={goal:Number($('setting-goal').value),newRatio:Number($('setting-new-ratio').value),level:$('setting-level').value,topic:'all',mode:'recall',reminder:$('setting-reminder').value,onboarding:true};await task(async()=>{state.data=await api('updateSettings',settings);state.page='home';render();notify('計畫已儲存，下一輪會使用新的設定。');});}
 // Downloaded enhanced/premium system voices sound far more natural than the defaults, so they are
@@ -969,6 +986,22 @@ if(window.speechSynthesis)speechSynthesis.onvoiceschanged=()=>{const el=$('setti
 let speechUnlocked=false;
 function unlockSpeech(){if(speechUnlocked||!('speechSynthesis'in window))return;speechUnlocked=true;const u=new SpeechSynthesisUtterance(' ');u.volume=0;speechSynthesis.speak(u);}
 for(const type of ['pointerdown','keydown','touchend'])document.addEventListener(type,unlockSpeech,{capture:true});
+// Correct-answer feedback: a short chime (per-device setting), a light buzz where supported, and praise text.
+let audioCtx=null;
+function soundOn(){return readLocal('sound')!=='off';}
+function unlockAudio(){if(!soundOn())return;try{audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume();}catch(e){audioCtx=null;}}
+for(const type of ['pointerdown','keydown','touchend'])document.addEventListener(type,unlockAudio,{capture:true});
+function chime(kind='correct'){if(!soundOn())return;unlockAudio();if(!audioCtx)return;const notes={correct:[880,1318.5],milestone:[784,1046.5,1318.5,1568],mastered:[1046.5,1318.5,1568,2093]}[kind]||[880,1318.5];const t0=audioCtx.currentTime+.01;notes.forEach((f,i)=>{const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type='sine';o.frequency.value=f;const t=t0+i*.09;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.16,t+.015);g.gain.exponentialRampToValueAtTime(.001,t+.32);o.connect(g).connect(audioCtx.destination);o.start(t);o.stop(t+.34);});}
+function buzz(pattern){try{navigator.vibrate?.(pattern);}catch(e){}}
+const PRAISE=['完美！','記得很牢！','漂亮！','完全正確！','反應很快！','穩穩記住了！'];
+function comboMilestone(n){return n===5||n===10||n===20||(n>20&&n%10===0);}
+function later(ms){const d=Math.round(ms/86400000);return d<1?'今天稍後':d===1?'明天':d<7?d+' 天後':d<30?Math.round(d/7)+' 週後':d<365?Math.round(d/30)+' 個月後':'一年後';}
+function praiseFor(f){if(!f.correct||f.helped)return null;const lines=[];
+  if(comboMilestone(f.combo))lines.push(`🔥 ${f.combo} 連對！`);
+  if(f.round)lines.push('重練答對，記回來了！');else if(f.wasNew)lines.push('第一次見就答對！');else if(f.gapDays>=2)lines.push(`隔了 ${f.gapDays} 天還記得！`);else lines.push(PRAISE[Math.floor(Math.random()*PRAISE.length)]);
+  return {title:lines.join(' '),next:f.first&&f.nextReview>Date.now()?`記得很牢，下次 ${later(f.nextReview-Date.now())}再見`:''};}
+function celebrate(f){if(!f.correct||f.helped)return;const kind=f.mastered?'mastered':comboMilestone(f.combo)?'milestone':'correct';chime(kind);buzz(kind==='correct'?18:[20,40,20]);}
+function confetti(){if(!window.requestAnimationFrame||window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches)return;const c=document.createElement('canvas');const ctx=c.getContext?.('2d');if(!ctx||!document.body)return;c.className='confetti';document.body.appendChild(c);const dpr=devicePixelRatio||1;c.width=innerWidth*dpr;c.height=innerHeight*dpr;ctx.scale(dpr,dpr);const colors=['#0E5C63','#1FB5B0','#FFB36B','#F4E1C1','#c7eb93'];const bits=Array.from({length:120},()=>({x:innerWidth/2+(Math.random()-.5)*innerWidth*.4,y:innerHeight*.35,vx:(Math.random()-.5)*9,vy:-Math.random()*11-3,r:Math.random()*Math.PI,s:5+Math.random()*6,c:colors[Math.floor(Math.random()*colors.length)]}));const start=performance.now();(function frame(t){const k=(t-start)/1800;ctx.clearRect(0,0,innerWidth,innerHeight);bits.forEach(b=>{b.vy+=.32;b.x+=b.vx;b.y+=b.vy;b.r+=.15;ctx.save();ctx.globalAlpha=Math.max(0,1-k);ctx.translate(b.x,b.y);ctx.rotate(b.r);ctx.fillStyle=b.c;ctx.fillRect(-b.s/2,-b.s/4,b.s,b.s/2);ctx.restore();});if(k<1)requestAnimationFrame(frame);else c.remove();})(start);}
 function speak(text,slow=false){if(!('speechSynthesis'in window)){notify('此瀏覽器不支援語音播放，請改用回想或讀音模式。');return false;}speechUnlocked=true;const busy=speechSynthesis.speaking||speechSynthesis.pending;if(busy)speechSynthesis.cancel();if(speechSynthesis.paused)speechSynthesis.resume();const u=new SpeechSynthesisUtterance(text);u.lang='ja-JP';u.rate=slow?.75:.9;const voice=preferredVoice();if(voice)u.voice=voice;u.onerror=e=>{if(!['interrupted','canceled'].includes(e.error))notify('語音播放失敗，請確認装置日文語音可用，或改用其他題型。');};
   // Keep a reference so the utterance is not garbage-collected mid-speech, and give the engine a
   // moment after cancel(): speaking immediately after cancel() is sometimes silently dropped.
@@ -980,7 +1013,7 @@ function downloadJson(name,value){const url=URL.createObjectURL(new Blob([JSON.s
 async function exportBackup(){await task(async()=>{const backup=await api('exportLearningBackup');backup.draft=state.draft;downloadJson('日日勉強日-進度-'+day()+'.json',backup);notify('備份已匯出，請保留在安全的位置。');});}
 function forecastHtml(f){if(!f)return '';return f.overloaded?`<div class="warning-panel" role="status"><strong>新字可能太多，複習會來不及</strong><p>預估未來 30 天平均每天約 ${f.average} 題到期複習，超過每日複習名額 ${f.reviewSlots} 題。建議降低新字比例，或提高每日題數。</p></div>`:`<p class="note">預估未來 30 天平均每天約 ${f.average} 題到期複習，每日複習名額 ${f.reviewSlots} 題，目前的步調來得及。</p>`;}
 function settingsForecast(){const box=$('forecast-warning');if(!box||!window.epopCloud)return;box.innerHTML=forecastHtml(window.epopCloud.forecast({...state.data.profile.settings,goal:Number($('setting-goal').value),newRatio:Number($('setting-new-ratio').value),level:$('setting-level').value}));}
-document.addEventListener('change',e=>{if(['setting-goal','setting-new-ratio','setting-level'].includes(e.target.id))settingsForecast();if(e.target.id==='setting-voice'){writeLocal('voice',e.target.value);speak(VOICE_SAMPLE);}});
+document.addEventListener('change',e=>{if(['setting-goal','setting-new-ratio','setting-level'].includes(e.target.id))settingsForecast();if(e.target.id==='setting-voice'){writeLocal('voice',e.target.value);speak(VOICE_SAMPLE);}if(e.target.id==='setting-sound'){writeLocal('sound',e.target.checked?'on':'off');if(e.target.checked)chime();}});
 const VOICE_SAMPLE='毎日少しずつ日本語を勉強しています。';
 document.addEventListener('click',e=>{const nav=e.target.closest('[data-page]');if(nav){go(nav.dataset.page);return;}const b=e.target.closest('button');if(!b||b.disabled||state.busy)return;
   if(b.dataset.session){const session=state.data.recent.find(s=>s.id===b.dataset.session);if(session){state.session=session;go('summary');}return;}
