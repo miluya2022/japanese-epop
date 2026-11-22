@@ -82,6 +82,10 @@ dialog{max-width:420px;width:calc(100% - 36px);border:1px solid var(--line);bord
 /* Result pop-up: a floating card under the header for about a second; takes no layout space */
 .result-pop{position:fixed;z-index:40;top:calc(env(safe-area-inset-top,0px) + 64px);left:50%;width:min(420px,calc(100% - 32px));transform:translateX(-50%);padding:10px 14px;border:1px solid #9dcac4;border-radius:14px;background:#fffdf8;box-shadow:0 10px 28px #173b3c33;pointer-events:none;animation:result-pop 1.6s ease forwards}.result-pop .feedback-title{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:16px;font-weight:750;color:#0E5C63;margin:0}.result-pop .feedback-title span{flex:none;white-space:nowrap;font-size:12px;font-weight:700;color:#0E5C63;background:#d6eeea;border-radius:20px;padding:2px 9px}.result-pop .learned-note{font-size:12px;color:#5d6b66;margin:3px 0 0}.result-pop .mastered-badge{margin:5px 0 0;font-size:13px}@keyframes result-pop{0%{opacity:0;transform:translate(-50%,-10px) scale(.96)}12%{opacity:1;transform:translate(-50%,0) scale(1)}75%{opacity:1;transform:translate(-50%,0)}100%{opacity:0;transform:translate(-50%,-8px)}}@media(prefers-reduced-motion:reduce){.result-pop{animation:none!important}}
 </style>
+<style>
+/* Anchored variant: the result card floats just above the answer input */
+.quiz-answer{position:relative}.result-pop.anchored{position:absolute;top:auto;bottom:calc(100% + 8px);left:0;right:0;width:auto;transform:none;animation:result-pop-up 1.6s ease forwards}@keyframes result-pop-up{0%{opacity:0;transform:translateY(10px) scale(.96)}12%{opacity:1;transform:translateY(0) scale(1)}75%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(6px)}}@media(prefers-reduced-motion:reduce){.result-pop.anchored{animation:none!important}}
+</style>
 
 </head>
 <body>
@@ -898,8 +902,9 @@ function quizView(){
     <div id="answer-status" class="answer-status" role="status">${feedback?'已儲存這次作答':state.draft.pending?'正在儲存…':'答對會自動送出，不限修改次數。'}</div></form>
   </div>`;
 }
-// The result pop-up lives outside the quiz markup so a re-render (keyboard closing, sync) can't wipe it early.
-function popResult(feedback){document.querySelectorAll?.('.result-pop').forEach(el=>el.remove());if(!document.body?.appendChild||!document.createElement)return;const el=document.createElement('div');el.className='result-pop';el.setAttribute('role','status');el.innerHTML=feedbackTop(feedback);document.body.appendChild(el);setTimeout(()=>el.remove?.(),1700);}
+// The result pop-up sits just above the answer form (kept mounted across re-renders), so it stays in view
+// when the phone keyboard has scrolled the page down to the input.
+function popResult(feedback){document.querySelectorAll?.('.result-pop').forEach(el=>el.remove());if(!document.body?.appendChild||!document.createElement)return;const el=document.createElement('div'),anchor=document.querySelector?.('.quiz-answer');el.className='result-pop'+(anchor?' anchored':'');el.setAttribute('role','status');el.innerHTML=feedbackTop(feedback);(anchor||document.body).appendChild(el);setTimeout(()=>el.remove?.(),1700);}
 function feedbackTop(feedback){return `<div class="feedback-head"><div class="feedback-title ${state.praise?'win':''}"><strong>${state.praise?'✓ '+esc(state.praise.title):feedback.correct?'✓ 答對了':'這題先記起來'}</strong><span class="${state.praise&&feedback.xp?'xp-pop':''}">${feedback.xp?'+'+feedback.xp+' XP':'重練完成'}</span></div>${feedback.mastered?`<p class="mastered-badge">⭐ 這個字升級為已熟記</p>`:''}${state.praise?.next?`<p class="learned-note">${esc(state.praise.next)}</p>`:feedback.first&&feedback.nextReview>Date.now()?`<p class="learned-note">下次複習：${when(feedback.nextReview)}</p>`:''}</div>`;}
 function reportHtml(q){
   if(state.reportedId===q.id)return '<p class="note">已收到回報，謝謝。</p>';
