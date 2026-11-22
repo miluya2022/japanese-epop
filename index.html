@@ -406,6 +406,12 @@ var Learning = (function () {
     session.events[input.eventId] = result;
     return result;
   }
+  // A word counts as done once it has no retry left to answer, so a missed word is only done after its last retry.
+  function completedWords(session) {
+    var pending = {};
+    (session.queue || []).forEach(function(q) { if (!q.answered) pending[q.wordId] = true; });
+    return Object.keys(session.results || {}).filter(function(id) { return !pending[id]; }).length;
+  }
   // Finished rounds keep only the summary needed by the results and history pages.
   function summarize(session) {
     if (!session || session.summary || !(session.completedAt || session.closedAt)) return session;
@@ -572,7 +578,7 @@ var Learning = (function () {
   }
   return {textFallback: textFallback, normalize: normalize, acceptedAnswers: acceptedAnswers, day: day, defaults: defaults, settings: settings, progress: progress, status: status,
     candidates: candidates, openNew: openNew, start: start, answer: answer, dashboard: dashboard, forecast: forecast, examples: examples,
-    summarize: summarize, migrate: migrate, compact: compact, apply: apply, replay: replay, emptyState: emptyState, RATING: RATING,
+    summarize: summarize, completedWords: completedWords, migrate: migrate, compact: compact, apply: apply, replay: replay, emptyState: emptyState, RATING: RATING,
     fsrs: {schedule: schedule, intervalDays: intervalDays, retrievability: retrievability}};
 })();
 
@@ -851,7 +857,7 @@ function illustrationHtml(q){
 function quizView(){
   const session=state.session,q=state.feedback?state.answeredQuestion:session?.queue[session.index];if(!q)return '<div class="empty">練習已完成</div>';
   const feedback=state.feedback,reading=q.mode==='reading',listening=q.mode==='listening',hints=state.draft.hints||0;
-  const done=Object.keys(session.results).length;
+  const done=Learning.completedWords(session);
   return `<div class="quiz-layout">
     <div class="quiz-top"><button class="text-link" data-action="home">← 暫停練習</button><span class="tag ${q.overdue&&!q.round?'amber':''}">${q.round?'重練':q.overdue?'重新複習':q.wasNew?'新單字':'複習'} · ${esc(labels[q.mode])}</span><span>${done} / ${session.total}</span></div>
     ${progress(done/session.total*100)}
