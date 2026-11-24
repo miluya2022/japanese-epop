@@ -214,7 +214,8 @@ var Learning = (function () {
   function examples(word) {
     var list = Array.isArray(word.examples) && word.examples.length ? word.examples.map(function (e) {
       // form names the conjugation used in the blank (e.g. て形), so the learner knows what to type.
-      return {jp: e.jp || e.sentence_jp || '', zh: e.zh || e.sentence_zh || '', form: e.form || ''};
+      // alt lists other correct ways to write this blank (送假名 variants, kana/kanji spellings).
+      return {jp: e.jp || e.sentence_jp || '', zh: e.zh || e.sentence_zh || '', form: e.form || '', alt: Array.isArray(e.alt) ? e.alt : []};
     }) : [{jp: word.sentence_jp, zh: word.sentence_zh}].concat((word.variants || []).map(function (v) {
       return {jp: v, zh: word.variant_zh || word.sentence_zh};
     }));
@@ -263,7 +264,7 @@ var Learning = (function () {
     var match = example.jp.match(/\{([^|}]+)\|([^}]+)\}/);
     return {id: word.id + ':' + index + ':0', wordId: word.id, word: word.word, kana: word.kana,
       image_url: word.image_url || '', image_alt: word.image_alt || '', hint: word.hint || '',
-      meaning: word.meaning, sentence: example.jp, translation: example.zh || '', form: example.form || '', sentenceIndex: sentenceIndex,
+      meaning: word.meaning, sentence: example.jp, translation: example.zh || '', form: example.form || '', alt: example.alt || [], sentenceIndex: sentenceIndex,
       explanation: word.explanation || ('這個句子使用「' + word.word + '」，意思是「' + word.meaning + '」。'),
       mode: mode, answer: match ? match[1] : word.word, reading: match ? match[2] : word.kana, overdue: !!pick.overdue,
       aliases: word.aliases || [], round: 0, wasNew: !p.seen, hints: 0, revealed: false, assistedAudio: false, answered: false};
@@ -392,7 +393,8 @@ var Learning = (function () {
   }
   function acceptedAnswers(q) {
     var list = q.mode === 'reading' ? [normalize(q.reading)].concat((q.aliases || []).filter(function (a) { return /^[\u3040-\u30ff]+$/.test(a); }).map(normalize))
-      : spellings(q.answer, q.reading).concat([normalize(q.reading)], (q.aliases || []).map(normalize));
+      : spellings(q.answer, q.reading).concat([normalize(q.reading)], (q.aliases || []).map(normalize),
+          [].concat.apply([], (q.alt || []).map(function (a) { return [normalize(a)].concat(spellings(a, q.reading)); })));
     return list.filter(function (a, i) { return a && list.indexOf(a) === i; });
   }
   function answer(session, records, profile, input, now) {
