@@ -86,6 +86,7 @@ dialog{max-width:420px;width:calc(100% - 36px);border:1px solid var(--line);bord
 /* Anchored variant: the result card floats just above the answer input */
 .quiz-answer{position:relative}.result-pop.anchored{position:absolute;top:auto;bottom:calc(100% + 8px);left:0;right:0;width:auto;transform:none;animation:result-pop-up 1.6s ease forwards}@keyframes result-pop-up{0%{opacity:0;transform:translateY(10px) scale(.96)}12%{opacity:1;transform:translateY(0) scale(1)}75%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(6px)}}@media(prefers-reduced-motion:reduce){.result-pop.anchored{animation:none!important}}
 </style>
+<style>.result-block .word-info{margin:-2px 0 6px;font-size:.82rem;color:var(--muted,#6b6b6b);font-family:"Noto Sans JP","Hiragino Sans",sans-serif}</style>
 
 </head>
 <body>
@@ -264,6 +265,7 @@ var Learning = (function () {
     var match = example.jp.match(/\{([^|}]+)\|([^}]+)\}/);
     return {id: word.id + ':' + index + ':0', wordId: word.id, word: word.word, kana: word.kana,
       image_url: word.image_url || '', image_alt: word.image_alt || '', hint: word.hint || '',
+      pitch: word.pitch || '', pos: word.pos || '',
       meaning: word.meaning, sentence: example.jp, translation: example.zh || '', form: example.form || '', alt: example.alt || [], sentenceIndex: sentenceIndex,
       explanation: word.explanation || ('這個句子使用「' + word.word + '」，意思是「' + word.meaning + '」。'),
       mode: mode, answer: match ? match[1] : word.word, reading: match ? match[2] : word.kana, overdue: !!pick.overdue,
@@ -898,7 +900,7 @@ function quizView(){
     ${progress(done/session.total*100)}
     <section class="quiz-question ${feedback?'is-feedback':''}" aria-live="polite">${feedback?'':`<div class="eyebrow">${reading?'READ THE WORD':listening?'LISTEN & RECALL':'RECALL IN CONTEXT'}</div>`}
     <p class="quiz-translation">${reading?'請輸入這個單字的假名。':listening?esc('聽完整句子，填入：'+q.meaning):zhHtml(q.translation)}</p>
-    <div class="sentence">${reading?esc(q.answer):listening&&!feedback?'<span class="listening-symbol">♫</span>':sentenceHtml(q.sentence,!feedback)}</div>${listening&&!feedback?button('無法播放？改用文字練習','text-fallback','ghost small'):''}${q.assistedAudio?'<small>已切換文字練習，記為提示</small>':''}${q.hint?`<p class="word-hint"><span>提示</span>${esc(q.hint)}</p>`:''}${q.form?`<p class="word-hint"><span>變化</span>${esc(q.form)}</p>`:''}${illustrationHtml(q)}${feedback?`<div class="result-block"><span class="result-label">答案</span><p class="answer">${esc(feedback.answer)}<small>${esc(feedback.reading)}</small></p>${reading||listening?`<p class="result-zh">${zhHtml(q.translation)}</p>`:''}<span class="result-label">解析</span><p class="explanation">${esc(feedback.explanation)}</p></div>${reportHtml(q)}`:hints?`<div class="hint-block"><span class="eyebrow">提示 ${hints} / 2</span><p>讀音開頭是「<strong>${esc(Array.from(q.reading)[0])}</strong>」。</p>${hints===2?'<p class="muted">已朗讀完整句子，試著回想答案。</p>':''}</div>`:''}</section>
+    <div class="sentence">${reading?esc(q.answer):listening&&!feedback?'<span class="listening-symbol">♫</span>':sentenceHtml(q.sentence,!feedback)}</div>${listening&&!feedback?button('無法播放？改用文字練習','text-fallback','ghost small'):''}${q.assistedAudio?'<small>已切換文字練習，記為提示</small>':''}${q.hint?`<p class="word-hint"><span>提示</span>${esc(q.hint)}</p>`:''}${q.form?`<p class="word-hint"><span>變化</span>${esc(q.form)}</p>`:''}${illustrationHtml(q)}${feedback?`<div class="result-block"><span class="result-label">答案</span><p class="answer">${esc(feedback.answer)}<small>${esc(feedback.reading)}</small></p>${wordInfoHtml(q)}${reading||listening?`<p class="result-zh">${zhHtml(q.translation)}</p>`:''}<span class="result-label">解析</span><p class="explanation">${esc(feedback.explanation)}</p></div>${reportHtml(q)}`:hints?`<div class="hint-block"><span class="eyebrow">提示 ${hints} / 2</span><p>讀音開頭是「<strong>${esc(Array.from(q.reading)[0])}</strong>」。</p>${hints===2?'<p class="muted">已朗讀完整句子，試著回想答案。</p>':''}</div>`:''}</section>
     <form id="answer-form" class="quiz-answer"><label class="answer-label" for="answer-input">${feedback?'你的答案':reading?'輸入假名':'輸入日文（漢字、假名或混用）'}</label>
     <div class="answer-row"><input id="answer-input" class="answer-input ${feedback?.correct?'correct':''}" type="text" lang="ja" autocomplete="off" spellcheck="false" enterkeyhint="${feedback?'next':'done'}" placeholder="${feedback?'已記錄，按下一步繼續':'在這裡輸入答案…'}" value="${esc(feedback?state.submittedAnswer||'':state.draft.answer||'')}" aria-busy="${!!state.draft.pending}"><span class="answer-action">${feedback?button(feedback.completed?'查看成果 →':'下一題 →','next','','type="button"'):button(hints===0?'提示':hints===1?'再提示':'看解答',hints>=2?'reveal':'hint','secondary',`type="button" title="${hints===0?'提示 1 · 首個假名':hints===1?'提示 2 · 朗讀整句':'看解答'}" ${state.draft.pending?'disabled':''}`)}</span></div>
     <div id="answer-status" class="answer-status" role="status">${feedback?'已儲存這次作答':state.draft.pending?'正在儲存…':'答對會自動送出，不限修改次數。'}</div></form>
@@ -1014,6 +1016,9 @@ function buzz(pattern){try{navigator.vibrate?.(pattern);}catch(e){}}
 const PRAISE=['完美！','記得很牢！','漂亮！','完全正確！','反應很快！','穩穩記住了！'];
 function comboMilestone(n){return n===5||n===10||n===20||(n>20&&n%10===0);}
 function later(ms){const d=Math.round(ms/86400000);return d<1?'今天稍後':d===1?'明天':d<7?d+' 天後':d<30?Math.round(d/7)+' 週後':d<365?Math.round(d/30)+' 個月後':'一年後';}
+const POS_NAMES={'名':'名詞','代':'代名詞','副':'副詞','接':'接續詞','感':'感嘆詞','造':'造語','連語':'片語','成句':'慣用語','連体':'連體詞','接頭':'接頭詞','接尾':'接尾詞','イ形':'い形容詞','ナ形':'な形容詞','形動トタル':'タルト形容動詞','補動':'補助動詞','補形':'補助形容詞','副助':'副助詞','格助':'格助詞','接助':'接續助詞','終助':'終助詞'};
+function posLabel(t){const m=t.match(/^(自他|自|他)?動([123])/);if(m)return (m[1]?m[1]+'動詞':'動詞')+'（'+['','五段','一段','サ變／カ變'][m[2]]+'）';return POS_NAMES[t]||t;}
+function wordInfoHtml(q){const pos=[...new Set(String(q.pos||'').split('・').map(t=>t.replace(/[⓪①②③④⑤⑥⑦⑧⑨]+$/,'')).filter(Boolean).map(posLabel))];const parts=[];if(q.answer!==q.word)parts.push(`辭書形 ${esc(q.word)}`);if(q.pitch)parts.push(`重音 ${esc(q.pitch)}`);if(pos.length)parts.push(esc(pos.join('・')));return parts.length?`<p class="word-info">${parts.join('<span aria-hidden="true"> · </span>')}</p>`:'';}
 function praiseFor(f){if(!f.correct||f.helped)return null;const lines=[];
   if(comboMilestone(f.combo))lines.push(`🔥 ${f.combo} 連對！`);
   if(f.round)lines.push('重練答對，記回來了！');else if(f.wasNew)lines.push('第一次見就答對！');else if(f.gapDays>=2)lines.push(`隔了 ${f.gapDays} 天還記得！`);else lines.push(PRAISE[Math.floor(Math.random()*PRAISE.length)]);
