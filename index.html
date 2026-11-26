@@ -87,6 +87,7 @@ dialog{max-width:420px;width:calc(100% - 36px);border:1px solid var(--line);bord
 .quiz-answer{position:relative}.result-pop.anchored{position:absolute;top:auto;bottom:calc(100% + 8px);left:0;right:0;width:auto;transform:none;animation:result-pop-up 1.6s ease forwards}@keyframes result-pop-up{0%{opacity:0;transform:translateY(10px) scale(.96)}12%{opacity:1;transform:translateY(0) scale(1)}75%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(6px)}}@media(prefers-reduced-motion:reduce){.result-pop.anchored{animation:none!important}}
 </style>
 <style>.result-block .word-info{margin:-2px 0 6px;font-size:.82rem;color:var(--muted,#6b6b6b);font-family:"Noto Sans JP","Hiragino Sans",sans-serif}</style>
+<style>/* In a quiz on phones the header is hidden: notices must not cover 「← 暫停練習」. */.quiz-mode #message{pointer-events:none}@media(max-width:600px){.quiz-mode .error-panel{top:calc(var(--quiz-top,0px) + 56px)}}.answer-action .button{touch-action:manipulation}</style>
 
 </head>
 <body>
@@ -117,12 +118,15 @@ var Learning = (function () {
   var OVERDUE_SHARE = 0.2, FORECAST_DAYS = 30;
   var RATING = {again: 1, hard: 2, good: 3, easy: 4};
   function normalize(value) {
-    return String(value || '').normalize('NFKC').replace(/[ァ-ヶ]/g, function (c) {
+    return String(value || '').normalize('NFKC').replace(/([\u3400-\u9fff々])[ヶヵケカかゖゕ](?=[\u3400-\u9fff々])/g, '$1か').replace(/[ァ-ヶ]/g, function (c) {
       return String.fromCharCode(c.charCodeAt(0) - 0x60);
     }).replace(/[\s　]/g, '').toLowerCase();
   }
   function day(time) { return new Date(time + 8 * 3600000).toISOString().slice(0, 10); }
   function startOfDay(time) { return Date.parse(day(time) + 'T00:00:00+08:00'); }
+  function isDue(p, now) {
+    return !!(p && p.seen) && (p.due <= now || (p.due - (p.lastReview || 0) >= DAY && day(p.due) === day(now)));
+  }
   function defaults() { return {goal: 20, newRatio: 30, level: 'N5', topic: 'all', mode: 'recall', reminder: '20:00', onboarding: false}; }
   function settings(input) {
     var s = Object.assign(defaults(), input || {});
@@ -226,15 +230,15 @@ var Learning = (function () {
     return words.filter(function (w) {
       var p = records[w.id];
       // Due reviews remain available regardless of a newly selected level/topic.
-      if (kind === 'review') return p && p.seen && p.due <= now;
+      if (kind === 'review') return isDue(p, now);
       if (kind === 'weak') return p && p.lastFailed;
       if (kind === 'favorites') return p && p.favorite;
-      if (p && p.seen && p.due <= now) return true;
+      if (isDue(p, now)) return true;
       return (!p || !p.seen) && (s.level === 'all' || w.level === s.level) &&
         (s.topic === 'all' || w.topic === s.topic) && (s.mode !== 'usage' || w.type === 'usage');
     }).sort(function (a, b) {
       var pa = records[a.id] || progress(), pb = records[b.id] || progress();
-      var da = pa.seen && pa.due <= now, db = pb.seen && pb.due <= now;
+      var da = isDue(pa, now), db = isDue(pb, now);
       if (da !== db) return da ? -1 : 1;
       if (da && pa.due !== pb.due) return pa.due - pb.due;
       if (kind === 'favorites' || kind === 'weak') {
@@ -260,7 +264,7 @@ var Learning = (function () {
     if (pick.mode) mode = pick.mode;
     if (mode === 'usage') mode = word.type === 'usage' ? 'usage' : 'recall';
     var list = examples(word);
-    var sentenceIndex = pick.sentence >= 0 && pick.sentence < list.length ? pick.sentence : Math.floor(Math.random() * list.length);
+    var sentenceIndex = typeof pick.sentence === 'number' ? (pick.sentence >= 0 && pick.sentence < list.length ? pick.sentence : 0) : Math.floor(Math.random() * list.length);
     var example = list[sentenceIndex] || {jp: '{' + word.word + '|' + word.kana + '}', zh: word.meaning};
     var match = example.jp.match(/\{([^|}]+)\|([^}]+)\}/);
     return {id: word.id + ':' + index + ':0', wordId: word.id, word: word.word, kana: word.kana,
@@ -384,7 +388,7 @@ var Learning = (function () {
         // A kanji is read with one to three kana, which bounds where the kana part may start.
         for (var k = 1; k < chars.length; k++) for (var j = k; j <= 3 * k && j < r.length; j++) {
           var rest = r.length - j;
-          if (rest >= chars.length - k && rest <= 3 * (chars.length - k)) opts.push(chars.slice(0, k).join('') + r.slice(j));
+          if (rest >= chars.length - k && rest <= 3 * (chars.length - k) && !/^[ぁぃぅぇぉっゃゅょゎーん]/.test(r.slice(j))) opts.push(chars.slice(0, k).join('') + r.slice(j));
         }
       } else opts.push(normalize(p));
       var next = [];
@@ -399,13 +403,14 @@ var Learning = (function () {
           [].concat.apply([], (q.alt || []).map(function (a) { return [normalize(a)].concat(spellings(a, q.reading)); })));
     return list.filter(function (a, i) { return a && list.indexOf(a) === i; });
   }
-  function answer(session, records, profile, input, now) {
+  function answer(session, records, profile, input, now, recorded) {
     if (session.events && session.events[input.eventId]) return session.events[input.eventId];
     var q = session.queue && session.queue[session.index];
     if (!q || q.id !== input.questionId || q.answered || (session.completedAt || session.closedAt)) throw new Error('題目已更新，請重新載入繼續學習。');
+    if (q.removed) return skipRemoved(session, q, input, now);
     var user = normalize(input.answer), answers = acceptedAnswers(q);
     var abandoned = Number(input.hints) >= 3;
-    var correct = !abandoned && answers.indexOf(user) >= 0;
+    var correct = !abandoned && (recorded || answers.indexOf(user) >= 0);
     if (!correct && !abandoned) throw new Error('答案尚未正確，可以繼續修改；第三次提示才會放棄作答。');
     var helped = !!input.hints || abandoned || !!input.assistedAudio || !!q.assistedAudio;
     var g = rating({hints: input.hints, assistedAudio: input.assistedAudio || q.assistedAudio}, abandoned);
@@ -440,6 +445,16 @@ var Learning = (function () {
     if (session.index >= session.queue.length) session.completedAt = now;
     result.completed = !!session.completedAt;
     session.events[input.eventId] = result;
+    return result;
+  }
+  // A word deleted from the vocabulary keeps its place in old rounds so later answers still line up.
+  function skipRemoved(session, q, input, now) {
+    q.answered = true; session.index++;
+    if (session.index >= session.queue.length) session.completedAt = now;
+    var result = {correct: true, helped: false, xp: 0, rating: 0, answer: q.answer, reading: q.reading, combo: session.combo || 0, wasNew: false,
+      round: q.round, mastered: false, gapDays: 0, explanation: '這個字已從題庫移除，這題直接跳過。', mode: q.mode, retry: false, nextReview: 0,
+      first: false, removed: true, completed: !!session.completedAt};
+    q.feedback = result; session.events[input.eventId] = result;
     return result;
   }
   // A word counts as done once it has no retry left to answer, so a missed word is only done after its last retry.
@@ -504,7 +519,7 @@ var Learning = (function () {
       if (p && p.favorite) favorites++;
       if (mastered(p)) masteredCount++;
       if (p && p.seen) {
-        if (p.due <= now) { due++; if (day(p.due) < today) overdue++; }
+        if (isDue(p, now)) { due++; if (day(p.due) < today) overdue++; }
         else if (!next || p.due < next) next = p.due;
       }
     });
@@ -516,7 +531,7 @@ var Learning = (function () {
     var active = sessions.filter(function(s) {return !s.completedAt && !s.closedAt && s.total;}).sort(function(a,b) {return b.startedAt-a.startedAt;})[0] || null;
     var recent = sessions.filter(function(s){return s.completedAt||s.closedAt;}).sort(function(a,b) {return (b.completedAt||b.closedAt)-(a.completedAt||a.closedAt);}).slice(0,7);
     var totalFirst = 0, correctFirst = 0, reviewTotal = 0, reviewCorrect = 0;
-    sessions.forEach(function(s) {totalFirst += Object.keys(s.results || {}).length; correctFirst += s.firstCorrect; reviewTotal += s.reviewTotal || 0; reviewCorrect += s.reviewCorrect || 0;});
+    sessions.forEach(function(s) {totalFirst += Object.keys(s.results || {}).length; correctFirst += s.firstCorrect || 0; reviewTotal += s.reviewTotal || 0; reviewCorrect += s.reviewCorrect || 0;});
     var modes = {};
     Object.keys(records).forEach(function(id) {Object.keys(records[id].modes || {}).forEach(function(mode) {
       var m = modes[mode] || {seen: 0, correct: 0}, a = records[id].modes[mode]; m.seen += a.seen; m.correct += a.correct; modes[mode] = m;
@@ -554,8 +569,10 @@ var Learning = (function () {
     words.forEach(function(w) { byId[w.id] = w; });
     var queue = [];
     stored.queue.forEach(function(item) {
-      var w = byId[item.w];
-      if (w) queue.push(question(w, records[w.id] || progress(), item.m, queue.length, {sentence: item.s, mode: item.m, overdue: !!item.o}));
+      var w = byId[item.w] || {id: item.w, word: '（已移除）', kana: '', meaning: '', examples: []};
+      var q = question(w, records[w.id] || progress(), item.m, queue.length, {sentence: item.s, mode: item.m, overdue: !!item.o});
+      if (!byId[item.w]) { q.removed = true; q.wasNew = false; }
+      queue.push(q);
     });
     return {id: stored.id, kind: stored.kind, startedAt: stored.startedAt, startRequestId: stored.startRequestId, completedAt: 0, index: 0,
       total: queue.length, available: stored.available || 0, fresh: queue.filter(function(q) { return q.wasNew; }).length, queue: queue,
@@ -593,7 +610,7 @@ var Learning = (function () {
       var input = payload.input || {}, session = state.sessions.find(function(s) { return s.id === payload.sessionId; });
       try {
         if (!session || session.summary) throw new Error('題目已更新，請重新載入繼續學習。');
-        result = {feedback: answer(session, state.records, state.profile, input, at), session: session};
+        result = {feedback: answer(session, state.records, state.profile, input, at, !!event.merged), session: session};
       } catch (error) {
         if (!event.merged) throw error;
         var abandoned = Number(input.hints) >= 3, helped = !!input.hints || abandoned || !!input.assistedAudio;
@@ -615,7 +632,7 @@ var Learning = (function () {
   }
   return {textFallback: textFallback, normalize: normalize, acceptedAnswers: acceptedAnswers, day: day, defaults: defaults, settings: settings, progress: progress, status: status,
     candidates: candidates, openNew: openNew, start: start, answer: answer, dashboard: dashboard, forecast: forecast, examples: examples,
-    summarize: summarize, completedWords: completedWords, mastered: mastered, migrate: migrate, compact: compact, apply: apply, replay: replay, emptyState: emptyState, RATING: RATING,
+    isDue: isDue, summarize: summarize, completedWords: completedWords, mastered: mastered, migrate: migrate, compact: compact, apply: apply, replay: replay, emptyState: emptyState, RATING: RATING,
     fsrs: {schedule: schedule, intervalDays: intervalDays, retrievability: retrievability}};
 })();
 
@@ -623,8 +640,12 @@ var Learning = (function () {
 /* Supabase adapter, offline first: answers are saved on this device as events, then synced in the background. */
 (function(){
   const client=window.supabase.createClient('https://lsoadcuagkqahwobfrbq.supabase.co','sb_publishable_f9vd8PlQaBdZXpgC1UCMlA_GRuqj6XR');
-  const PAGE=1000,BATCH=200;
-  let lastAt=0,user,words,db,cache,state=Learning.emptyState(),events=new Map(),results=new Map(),syncing=null,lastError='',online=true;
+  const PAGE=1000,BATCH=200,OVERLAP=200,NETWORK=/fetch|network|load failed|逾時/i;
+  let lastAt=0,user,words,db,cache,state=Learning.emptyState(),events=new Map(),results=new Map(),syncing=null,lastError='',online=true,listening=false;
+  // The signed-in account is remembered so the app still opens offline after the access token expires.
+  const LAST_USER='epop-last-user';
+  const remember=u=>{try{localStorage.setItem(LAST_USER,JSON.stringify({id:u.id,email:u.email||''}));}catch(e){}};
+  const remembered=()=>{try{const u=JSON.parse(localStorage.getItem(LAST_USER)||'null');return u&&u.id?u:null;}catch(e){return null;}};
   const $=id=>document.getElementById(id);
   const check=result=>{if(result.error)throw new Error(result.error.message);return result.data;};
   const timeout=(promise,ms)=>Promise.race([promise,new Promise((_,reject)=>setTimeout(()=>reject(new Error('連線逾時')),ms))]);
@@ -643,18 +664,20 @@ var Learning = (function () {
   // Vocabulary is cached on the device and downloaded again only when app_meta's version changes.
   async function vocabulary(){
     if(words)return words;
-    const cached=await cache.get('kv','vocabulary');
+    let cached=null;try{cached=await cache.get('kv','vocabulary');}catch(e){}
     let version=null,reachable=true;
     try{
       const meta=await timeout(client.from('app_meta').select('value').eq('key','vocabulary_version').maybeSingle(),8000);
-      if(meta.error){if(/fetch|network/i.test(meta.error.message))reachable=false;}else version=meta.data?.value||null;
+      if(meta.error){if(NETWORK.test(meta.error.message))reachable=false;}else version=meta.data?.value||null;
     }catch(e){reachable=false;}
     if(cached&&(!reachable||(version&&cached.version===version))){words=cached.words;return words;}
     try{
       const rows=[];
       for(let from=0;;from+=PAGE){const page=check(await timeout(client.from('vocabulary').select('*').order('id').range(from,from+PAGE-1),20000));rows.push(...page);if(page.length<PAGE)break;}
       if(!rows.length)throw new Error('Supabase 題庫目前沒有資料。');
-      words=rows;await cache.put('kv',{id:'vocabulary',version,words:rows,savedAt:Date.now()});
+      words=rows;
+      // A full device (quota) only costs the next download; the app keeps working.
+      try{await cache.put('kv',{id:'vocabulary',version,words:rows,savedAt:Date.now()});}catch(e){}
     }catch(error){if(cached){words=cached.words;return words;}throw new Error('第一次使用需要連線下載題庫：'+error.message);}
     return words;
   }
@@ -673,8 +696,10 @@ var Learning = (function () {
     lastAt=Math.max(Date.now(),lastAt+1);
     const event={id,at:lastAt,kind,payload,synced:0};
     const result=Learning.apply(state,words,event);
-    try{await db.put('events',event);}catch(error){rebuild();throw new Error('無法存到此裝置，作答尚未記錄。請確認瀏覽器儲存空間後重試。');}
-    events.set(id,event);status();sync();
+    // Known before the write, so a sync that rebuilds meanwhile keeps this event.
+    events.set(id,event);
+    try{await db.put('events',event);}catch(error){events.delete(id);rebuild();throw new Error('無法存到此裝置，作答尚未記錄。請確認瀏覽器儲存空間後重試。');}
+    status();sync();
     return result;
   }
 
@@ -689,14 +714,15 @@ var Learning = (function () {
     }
   }
   async function pullEvents(){
-    const cursor=(await db.get('kv','cursor'))?.value||0;let last=cursor,added=[];
+    // Re-reading a few rows before the cursor catches events whose earlier seq committed late.
+    const cursor=(await db.get('kv','cursor'))?.value||0;let last=Math.max(0,cursor-OVERLAP),seen=cursor,added=[];
     for(;;){
       const page=check(await client.from('learning_events').select('id,seq,at,kind,payload').gt('seq',last).order('seq').limit(PAGE));
-      for(const row of page){last=Math.max(last,row.seq);if(!events.has(row.id))added.push({id:row.id,at:Number(row.at),kind:row.kind,payload:row.payload,synced:1});}
+      for(const row of page){last=Math.max(last,row.seq);seen=Math.max(seen,row.seq);lastAt=Math.max(lastAt,Number(row.at)||0);if(!events.has(row.id)&&!added.some(e=>e.id===row.id))added.push({id:row.id,at:Number(row.at),kind:row.kind,payload:row.payload,synced:1});}
       if(page.length<PAGE)break;
     }
     if(added.length){await db.putAll('events',added);added.forEach(e=>events.set(e.id,e));}
-    if(last!==cursor)await db.put('kv',{id:'cursor',value:last});
+    if(seen!==cursor)await db.put('kv',{id:'cursor',value:seen});
     return added.length;
   }
   // Progress saved before this version becomes a single baseline event, created once per account.
@@ -715,14 +741,22 @@ var Learning = (function () {
     if(!user||!db)return Promise.resolve();
     if(syncing)return force?syncing.then(()=>sync()):syncing;
     syncing=(async()=>{
+      let changed=0;
       try{
         if(navigator.onLine===false)throw Object.assign(new Error('offline'),{offline:true});
-        const changed=(await pullEvents())+(await baseline());
+        // Opened offline with an expired token: wait until the session can be refreshed.
+        const auth=await client.auth.getSession();
+        if(!auth.data?.session)throw Object.assign(new Error(auth.error?.message||'登入已過期，請重新登入。'),{offline:!!auth.error&&NETWORK.test(auth.error.message||'')});
+        changed+=await pullEvents();
+        changed+=await baseline();
         await pushEvents();
         online=true;lastError='';
-        if(changed){rebuild();window.epopCloud.onChange?.();}
-      }catch(error){online=!error.offline&&!/fetch|network|Failed to fetch|逾時/i.test(error.message);lastError=error.message;}
-      finally{syncing=null;status();}
+      }catch(error){online=!error.offline&&!NETWORK.test(error.message);lastError=error.message;}
+      finally{
+        // Events already pulled are applied even when a later step failed.
+        if(changed){rebuild();try{window.epopCloud.onChange?.();}catch(e){}}
+        syncing=null;status();
+      }
     })();
     return syncing;
   }
@@ -787,7 +821,9 @@ var Learning = (function () {
   }
   window.epopCloud={
     async init(){
-      const session=check(await client.auth.getSession());user=session.session?.user;
+      const auth=await client.auth.getSession();user=auth.data?.session?.user;
+      if(user)remember(user);
+      else if(auth.error){user=remembered();if(!user)throw new Error(auth.error.message);}
       if(!user){loginView();status();return false;}
       const nav=document.querySelector('.bottom-nav');if(nav)nav.hidden=false;
       cache=storage('epop-cache');db=storage('epop-user-'+user.id);
@@ -796,9 +832,12 @@ var Learning = (function () {
       rebuild();
       // Wait briefly for other devices' answers; after that, sync continues in the background.
       await Promise.race([sync(),new Promise(resolve=>setTimeout(resolve,4000))]);
-      window.addEventListener?.('online',()=>sync());
-      document.addEventListener?.('visibilitychange',()=>{if(document.visibilityState==='visible')sync();});
-      setInterval(()=>sync(),30000);
+      if(!listening){
+        listening=true;
+        window.addEventListener?.('online',()=>sync());
+        document.addEventListener?.('visibilitychange',()=>{if(document.visibilityState==='visible')sync();});
+        setInterval(()=>sync(),30000);
+      }
       return true;
     },
     email:()=>user?.email||'',
@@ -807,9 +846,12 @@ var Learning = (function () {
     forecast:settings=>Learning.forecast(words,state.records,released(settings),Date.now()),
     onChange:null,
     async logout(){
+      let reports=0;try{reports=(await db?.all('outbox'))?.length||0;}catch(e){}
       const pending=unsynced().length;
-      if(pending&&!confirm('還有 '+pending+' 筆作答尚未同步到雲端，登出會刪除這些作答。確定要登出嗎？'))return;
-      check(await client.auth.signOut());await db?.drop?.();localStorage.removeItem('jepop-draft');location.reload();
+      if((pending||reports)&&!confirm('還有 '+(pending?pending+' 筆作答':'')+(pending&&reports?'和 ':'')+(reports?reports+' 筆題目回報':'')+'尚未同步到雲端，登出會刪除這些資料。確定要登出嗎？'))return;
+      // Local sign-out works offline too; the server session simply expires.
+      try{await client.auth.signOut({scope:'local'});}catch(e){}
+      await db?.drop?.();localStorage.removeItem('jepop-draft');localStorage.removeItem(LAST_USER);location.reload();
     }
   };
 })();
@@ -842,7 +884,8 @@ function todayText(){return new Intl.DateTimeFormat('zh-TW',{month:'long',day:'n
 function progress(percent){return `<div class="progress-track"><span style="width:${Math.max(0,Math.min(100,percent))}%"></span></div>`;}
 function button(text,action,kind='secondary',extra=''){return `<button class="button ${kind}" data-action="${action}" ${extra}>${text}</button>`;}
 function header(){const d=state.data;if(!d)return;$('header-streak').textContent=`🔥 ${d.streak} 天`;$('header-level').textContent=`Lv. ${1+Math.floor(d.profile.xp/100)}`;$('xp-fill').style.width=(d.profile.xp%100)+'%';$('xp-text').textContent=`${d.profile.xp%100} / 100 XP`;}
-function go(page){if(state.busy)return;state.keepKeyboard=false;state.composing=false;window.speechSynthesis?.cancel();state.page=page;render();window.scrollTo({top:0,behavior:'instant'});}
+function stopSpeech(){speak.current=null;window.speechSynthesis?.cancel();}
+function go(page){if(state.busy)return;state.keepKeyboard=false;state.composing=false;stopSpeech();state.page=page;render();window.scrollTo({top:0,behavior:'instant'});}
 function render(){
   if(!state.data)return;header();
   document.querySelectorAll('[data-page]').forEach(b=>{b.classList.toggle('active',b.dataset.page===state.page||(state.page==='quiz'&&b.dataset.page==='home'));b.setAttribute('aria-current',b.classList.contains('active')?'page':'false');});
@@ -917,7 +960,7 @@ function reportHtml(q){
 }
 async function sendReport(){const q=state.answeredQuestion;if(!q)return;const report={word_id:q.wordId,word:q.word,sentence:q.sentence,translation:q.translation,category:$('report-category').value,note:$('report-note').value.trim().slice(0,1000)};await task(async()=>{await api('reportProblem',report);state.reporting=false;state.reportedId=q.id;render();notify('已收到回報，連線時會送到雲端。');});}
 async function start(kind,newRound=false){const requestId=uid();await task(async()=>{const s=await api(newRound?'startNewSession':'startSession',kind||'daily',requestId);if(!s.total){notify('目前沒有符合條件的題目。可以換個主題，或等到複習時間再回來。');return;}state.session=s;state.data.active=s;state.feedback=null;state.page='quiz';loadDraft();render();if(s.queue[s.index]?.mode==='listening')speak(speechText(s.queue[s.index].sentence));if(state.draft.pending){notify('找到尚未確認的作答，正在恢復。');setTimeout(()=>submitPending(),0);}});}
-function normalizeAnswer(value){return String(value||'').normalize('NFKC').replace(/[\u30a1-\u30f6]/g,c=>String.fromCharCode(c.charCodeAt(0)-0x60)).replace(/[\s\u3000]/g,'').toLowerCase();}
+function normalizeAnswer(value){return Learning.normalize(value);}
 function acceptedAnswers(q){return Learning.acceptedAnswers(q);}
 function closeAnswerHint(value,answers){
   const input=Array.from(normalizeAnswer(value));if(!input.length)return '';
@@ -956,11 +999,12 @@ async function hint(){
   state.draft.answer=$('answer-input')?.value??state.draft.answer??'';
   state.draft.hints=Math.min(2,(state.draft.hints||0)+1);
   if(state.draft.hints===2)state.draft.assistedAudio=true;
-  saveDraft();render();
+  saveDraft();render();state.actionAt=Date.now();
   if(state.draft.hints===2)speak(speechText(q.sentence));
 }
 async function revealAnswer(){
   if(state.busy||state.draft.pending||state.feedback)return;
+  if(state.composing){notify('請先確定輸入的文字，再看解答。');return;}
   state.draft.answer=$('answer-input')?.value||'';
   state.draft.hints=3;state.draft.revealed=true;saveDraft();await submitAnswer();
 }
@@ -976,7 +1020,7 @@ async function submitAnswer(){
   const input=$('answer-input');if(input){state.keepKeyboard=true;input.setAttribute('aria-busy','true');}answerStatus('正在儲存…','correct');await submitPending();
 }
 async function submitPending(){await task(async()=>{const q=state.session.queue[state.session.index];const submittedAnswer=state.draft.pending.answer;const result=await api('answerQuestion',state.session.id,state.draft.pending);state.submittedAnswer=submittedAnswer;state.answeredQuestion=q;state.feedback=result.feedback;state.praise=praiseFor(result.feedback);state.session=result.session;state.data=result.dashboard;state.draft={};saveDraft();render();popResult(result.feedback);speak(speechText(q.sentence));celebrate(result.feedback);if(window.innerWidth>600)document.querySelector('[data-action="next"]')?.focus();},submitPending);}
-function next(){window.speechSynthesis?.cancel();state.feedback=null;state.praise=null;state.reporting=false;if(state.session.completedAt){state.page='summary';}else{loadDraft();state.page='quiz';}render();if(state.page==='summary'){chime('milestone');confetti();}if(state.page==='quiz'&&state.session.queue[state.session.index]?.mode==='listening')speak(speechText(state.session.queue[state.session.index].sentence));}
+function next(){stopSpeech();document.querySelectorAll?.('.result-pop').forEach(el=>el.remove());state.actionAt=Date.now();state.feedback=null;state.praise=null;state.reporting=false;if(state.session.completedAt){state.page='summary';}else{loadDraft();state.page='quiz';}render();if(state.page==='summary'){chime('milestone');confetti();}if(state.page==='quiz'&&state.session.queue[state.session.index]?.mode==='listening')speak(speechText(state.session.queue[state.session.index].sentence));}
 function summaryView(){const s=state.session;if(!s)return '<div class="empty">完成一輪後就能看到成果。</div>';const scoredTotal=s.closedAt?Object.keys(s.results).length:s.total;const weak=Object.values(s.results).filter(r=>!r.correct);return `<div class="summary celebrate"><div class="summary-icon">✦</div><div class="eyebrow">A LITTLE BETTER, EVERY DAY</div><h1>${s.closedAt?'這一輪，已結束。':'這一輪，完成了。'}</h1><p class="muted">今天的每一次回想，都留下了紀錄。</p></div>
   <div class="grid"><div class="tile"><small>無提示完成</small><strong class="number-green">${s.firstCorrect}／${scoredTotal}</strong><small>${Object.keys(s.results).length?Math.round(s.firstCorrect/Object.keys(s.results).length*100):0}% 正確率</small></div><div class="tile"><small>本輪新學</small><strong>${s.closedAt?(s.answeredFresh??(s.queue||[]).filter(q=>q.round===0&&q.wasNew&&q.answered).length):s.fresh}</strong><small>個新內容</small></div><div class="tile"><small>獲得經驗</small><strong>+${s.xp}</strong><small>XP</small></div></div>
   <section class="panel"><p>無提示完成 ${s.firstCorrect} 題 · 提示後完成 ${s.assisted} 題 · 揭露答案 ${s.mistakes} 題</p>${(s.bestCombo||0)>=2||(s.masteredNow||[]).length?`<p class="summary-wins">${(s.bestCombo||0)>=2?`<span>🔥 最多連對 <b>${s.bestCombo}</b> 題</span>`:''}${(s.masteredNow||[]).length?`<span>⭐ 升級為已熟記 <b>${s.masteredNow.length}</b> 個：${s.masteredNow.map(esc).join('、')}</span>`:''}</p>`:''}<h3>${weak.length?'這幾個，再給它們一點時間。':'這輪都能獨立回答，很好！'}</h3>${weak.length?`<ul class="mini-list">${weak.map(w=>`<li>${esc(w.word)}（${esc(w.reading)}）<span class="tag">${esc(labels[w.mode])}</span></li>`).join('')}</ul><p class="muted">重練成功也會保留本輪原始紀錄；隔一段時間再答對，才代表記憶更穩定。</p>`:'<p class="muted">系統已安排間隔複習，下次會換個句子確認記憶。</p>'}</section>
@@ -1025,7 +1069,7 @@ function praiseFor(f){if(!f.correct||f.helped)return null;const lines=[];
   return {title:lines.join(' '),next:f.first&&f.nextReview>Date.now()?`記得很牢，下次 ${later(f.nextReview-Date.now())}再見`:''};}
 function celebrate(f){if(!f.correct||f.helped)return;const kind=f.mastered?'mastered':comboMilestone(f.combo)?'milestone':'correct';chime(kind);buzz(kind==='correct'?18:[20,40,20]);}
 function confetti(){if(!window.requestAnimationFrame||window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches)return;const c=document.createElement('canvas');const ctx=c.getContext?.('2d');if(!ctx||!document.body)return;c.className='confetti';document.body.appendChild(c);const dpr=devicePixelRatio||1;c.width=innerWidth*dpr;c.height=innerHeight*dpr;ctx.scale(dpr,dpr);const colors=['#0E5C63','#1FB5B0','#FFB36B','#F4E1C1','#c7eb93'];const bits=Array.from({length:120},()=>({x:innerWidth/2+(Math.random()-.5)*innerWidth*.4,y:innerHeight*.35,vx:(Math.random()-.5)*9,vy:-Math.random()*11-3,r:Math.random()*Math.PI,s:5+Math.random()*6,c:colors[Math.floor(Math.random()*colors.length)]}));const start=performance.now();(function frame(t){const k=(t-start)/1800;ctx.clearRect(0,0,innerWidth,innerHeight);bits.forEach(b=>{b.vy+=.32;b.x+=b.vx;b.y+=b.vy;b.r+=.15;ctx.save();ctx.globalAlpha=Math.max(0,1-k);ctx.translate(b.x,b.y);ctx.rotate(b.r);ctx.fillStyle=b.c;ctx.fillRect(-b.s/2,-b.s/4,b.s,b.s/2);ctx.restore();});if(k<1)requestAnimationFrame(frame);else c.remove();})(start);}
-function speak(text,slow=false){if(!('speechSynthesis'in window)){notify('此瀏覽器不支援語音播放，請改用回想或讀音模式。');return false;}speechUnlocked=true;const busy=speechSynthesis.speaking||speechSynthesis.pending;if(busy)speechSynthesis.cancel();if(speechSynthesis.paused)speechSynthesis.resume();const u=new SpeechSynthesisUtterance(text);u.lang='ja-JP';u.rate=slow?.75:.9;const voice=preferredVoice();if(voice)u.voice=voice;u.onerror=e=>{if(!['interrupted','canceled'].includes(e.error))notify('語音播放失敗，請確認装置日文語音可用，或改用其他題型。');};
+function speak(text,slow=false){if(!('speechSynthesis'in window)){notify('此瀏覽器不支援語音播放，請改用回想或讀音模式。');return false;}speechUnlocked=true;const busy=speechSynthesis.speaking||speechSynthesis.pending;if(busy)speechSynthesis.cancel();if(speechSynthesis.paused)speechSynthesis.resume();const u=new SpeechSynthesisUtterance(text);u.lang='ja-JP';u.rate=slow?.75:.9;const voice=preferredVoice();if(voice)u.voice=voice;u.onerror=e=>{if(!['interrupted','canceled'].includes(e.error))notify('語音播放失敗，請確認裝置日文語音可用，或改用其他題型。');};
   // Keep a reference so the utterance is not garbage-collected mid-speech, and give the engine a
   // moment after cancel(): speaking immediately after cancel() is sometimes silently dropped.
   speak.current=u;let started=false;u.onstart=()=>{started=true;};
@@ -1046,7 +1090,7 @@ document.addEventListener('click',e=>{const nav=e.target.closest('[data-page]');
   if(b.dataset.filter){state.filter=b.dataset.filter;render();return;}
   if(b.dataset.favorite){task(async()=>{state.data=await api('toggleFavorite',b.dataset.favorite);render();});return;}
   if(b.dataset.speak){const word=state.data.words.find(w=>w.id===b.dataset.speak);if(word)speak(word.kana);return;}
-  const action=b.dataset.action;if(action==='check-update'){window.epopUpdates?.check();return;}if(action==='install'){window.epopUpdates?.install();return;}if(action==='reveal'){revealAnswer();return;}if(action==='cloud-logout'){task(()=>window.epopCloud.logout());return;}if(action==='backup-export'){exportBackup();return;}if(action==='voice-test'){speak(VOICE_SAMPLE);return;}if(action==='sync-now'){task(async()=>{state.data=await api('syncNow');render();notify(window.epopCloud?.status()||'已同步');});return;}if(action==='report-open'){state.reporting=true;render();document.querySelector('.report-form')?.scrollIntoView?.({block:'nearest'});return;}if(action==='report-cancel'){state.reporting=false;render();return;}if(action==='report-send'){sendReport();return;}if(['home','words','stats','settings','summary'].includes(action)){go(action);return;}
+  const action=b.dataset.action;if((action==='reveal'||action==='hint')&&Date.now()-(state.actionAt||0)<400)return;if(action==='check-update'){window.epopUpdates?.check();return;}if(action==='install'){window.epopUpdates?.install();return;}if(action==='reveal'){revealAnswer();return;}if(action==='cloud-logout'){task(()=>window.epopCloud.logout());return;}if(action==='backup-export'){exportBackup();return;}if(action==='voice-test'){speak(VOICE_SAMPLE);return;}if(action==='sync-now'){task(async()=>{state.data=await api('syncNow');render();notify(window.epopCloud?.status()||'已同步');});return;}if(action==='report-open'){state.reporting=true;render();document.querySelector('.report-form')?.scrollIntoView?.({block:'nearest'});return;}if(action==='report-cancel'){state.reporting=false;render();return;}if(action==='report-send'){sendReport();return;}if(['home','words','stats','settings','summary'].includes(action)){go(action);return;}
   if(action==='start-new')start(b.dataset.kind,true);else if(action==='start')start(b.dataset.kind);else if(action==='hint')hint();else if(action==='next')next();else if(action==='audio')audio();else if(action==='text-fallback')textFallback();else if(action==='calendar')calendar();
 });
 document.addEventListener('pointerdown',e=>{
@@ -1058,7 +1102,7 @@ document.addEventListener('compositionstart',e=>{if(e.target.id==='answer-input'
 document.addEventListener('compositionend',e=>{if(e.target.id!=='answer-input')return;setTimeout(()=>{state.composing=false;if(state.page==='quiz'&&$('answer-input')===e.target)checkLiveAnswer();},0);});
 document.addEventListener('keydown',e=>{if(e.target.id==='next-input'&&e.key==='Enter'&&!e.isComposing){e.preventDefault();if(!state.busy)next();return;}if(e.target.id==='answer-input'&&e.key==='Enter'&&(e.isComposing||state.composing||e.keyCode===229)){e.preventDefault();}});
 document.addEventListener('input',e=>{if(e.target.id==='word-search'){state.search=e.target.value;$('word-results').innerHTML=wordRows();}if(e.target.id==='answer-input'&&!state.feedback&&!state.draft.pending){state.draft.answer=e.target.value;saveDraft();if(!e.isComposing&&!state.composing)return checkLiveAnswer();}});
-document.addEventListener('DOMContentLoaded',()=>{$('retry-button').onclick=()=>state.retry?.();document.querySelector('.brand').onclick=e=>{e.preventDefault();go('home');};if(window.epopCloud)window.epopCloud.onChange=async()=>{if(state.busy||!state.data||['quiz','summary'].includes(state.page))return;state.data=await api('getDashboard');render();};if(!state.storage)notify('瀏覽器阻擋儲存，關閉頁面後可能無法取回此學習檔案。');task(async()=>{if(window.epopCloud&&!await window.epopCloud.init())return;state.data=await api('getDashboard');render();});});
+document.addEventListener('DOMContentLoaded',()=>{$('retry-button').onclick=()=>state.retry?.();document.querySelector('.brand').onclick=e=>{e.preventDefault();go('home');};if(window.epopCloud)window.epopCloud.onChange=async()=>{if(state.busy||!state.data||['quiz','summary'].includes(state.page))return;try{state.data=await api('getDashboard');}catch(e){return;}const typing=['INPUT','SELECT','TEXTAREA'].includes(document.activeElement?.tagName);if(state.page==='settings'||typing)header();else render();};if(!state.storage)notify('瀏覽器阻擋儲存，關閉頁面後可能無法取回此學習檔案。');task(async()=>{if(window.epopCloud&&!await window.epopCloud.init())return;state.data=await api('getDashboard');render();});});
 </script>
 
 <script src="./install.js"></script>

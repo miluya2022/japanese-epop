@@ -27,7 +27,9 @@
       reg.addEventListener('updatefound',()=>reg.installing?.addEventListener('statechange',()=>{if(reg.waiting)offer();}));
       reg.update().catch(()=>{});
     }).catch(()=>{});
-    navigator.serviceWorker.addEventListener('controllerchange',()=>{if(waitingWorker&&!replacing){replacing=true;location.reload();}});
+    // Another tab may activate the update; this tab waits until it is not in an exercise.
+    const reloadWhenIdle=()=>{if(typeof state!=='undefined'&&(state.busy||state.page==='quiz')){setTimeout(reloadWhenIdle,2000);return;}location.reload();};
+    navigator.serviceWorker.addEventListener('controllerchange',()=>{if(waitingWorker&&!replacing){replacing=true;reloadWhenIdle();}});
   }
   const reopen=()=>{if(document.visibilityState==='visible'){dismissed=false;registration?.update().catch(()=>{});offer();}};
   window.addEventListener('pageshow',reopen);document.addEventListener('visibilitychange',reopen);

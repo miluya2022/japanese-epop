@@ -1,6 +1,7 @@
-const CACHE='epop-6fc90172ae093c';
+const CACHE='epop-69f84d091c1149';
 const ASSETS=['./','./index.html','./manifest.webmanifest','./install.js','./supabase.js','./icon-192.png','./icon-512.png','./logo.svg'];
-self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS))));
+// cache:'reload' skips the browser's HTTP cache, so a new version never stores an older page.
+self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS.map(url=>new Request(url,{cache:'reload'}))))));
 self.addEventListener('activate',event=>event.waitUntil((async()=>{
   for(const key of await caches.keys())if(key.startsWith('epop-')&&key!==CACHE)await caches.delete(key);
   await self.clients.claim();
@@ -13,7 +14,7 @@ self.addEventListener('fetch',event=>{
     const cache=await caches.open(CACHE);
     const cached=await cache.match(event.request,{ignoreSearch:true});
     if(cached)return cached;
-    if(event.request.mode==='navigate')return await cache.match('./index.html');
+    if(event.request.mode==='navigate')return (await cache.match('./index.html'))||fetch(event.request);
     return fetch(event.request);
   })());
 });
